@@ -2,7 +2,7 @@
 
 API REST de **Laito**, PWA d'écriture et de partage de livres. Le front (PWA React) est dans le dépôt [flaito](https://github.com/AMTHELINKER/flaito).
 
-NestJS · TypeScript · TypeORM · PostgreSQL · Redis (BullMQ) — REST versionnée `/api/v1`, documentée avec Swagger sur `/api/docs`.
+NestJS · TypeScript · TypeORM · PostgreSQL · Redis (BullMQ, Socket.IO) — REST versionnée `/api/v1`, documentée avec Swagger sur `/api/docs`.
 
 ## Démarrer
 
@@ -42,14 +42,15 @@ Toute la pile en conteneurs : `docker compose --profile app up --build`.
 
 Un domaine = un module NestJS = un schéma PostgreSQL :
 
-| Domaine      | Schéma     | Rôle                                                                        |
-| ------------ | ---------- | --------------------------------------------------------------------------- |
-| identité     | `identity` | comptes, profils, sessions, paramètres, jetons e-mail                       |
-| écriture     | `writing`  | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
-| partage      | `sharing`  | liens de partage, invitations, **service d'autorisation unique**            |
-| social       | `social`   | amitiés (nécessaires à la visibilité « amis »)                              |
-| bibliothèque | `library`  | progression de lecture, favoris                                             |
-| catalogue    | —          | composition : recherche publique, profils auteurs                           |
+| Domaine      | Schéma      | Rôle                                                                        |
+| ------------ | ----------- | --------------------------------------------------------------------------- |
+| identité     | `identity`  | comptes, profils, sessions, paramètres, jetons e-mail                       |
+| écriture     | `writing`   | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
+| partage      | `sharing`   | liens de partage, invitations, **service d'autorisation unique**            |
+| social       | `social`    | amitiés (visibilité « amis », messagerie)                                   |
+| messagerie   | `messaging` | conversations privées et groupes, messages, temps réel (Socket.IO + Redis)  |
+| bibliothèque | `library`   | progression de lecture, favoris                                             |
+| catalogue    | —           | composition : recherche publique, profils auteurs                           |
 
 Les domaines ne lisent jamais les tables des autres. Ils passent par les services exportés ou par des événements (`user.deleted`, `user.export`, `writing.book.deleted`). Aucune clé étrangère entre schémas ; clés primaires en UUID v7.
 

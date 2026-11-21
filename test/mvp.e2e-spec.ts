@@ -8,19 +8,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { MailService } from '../src/mail/mail.service';
 import { setupApp } from '../src/setup-app';
-
-class FakeMail {
-  sent: { kind: 'verify' | 'reset'; to: string; token: string }[] = [];
-  async sendVerification(to: string, token: string) {
-    this.sent.push({ kind: 'verify', to, token });
-  }
-  async sendPasswordReset(to: string, token: string) {
-    this.sent.push({ kind: 'reset', to, token });
-  }
-  last(to: string, kind: 'verify' | 'reset') {
-    return [...this.sent].reverse().find((m) => m.to === to && m.kind === kind)?.token;
-  }
-}
+import { FakeMail } from './support';
 
 const run = Date.now().toString(36);
 const PNG_1PX = Buffer.from(
@@ -60,7 +48,7 @@ describe('MVP Laito (e2e)', () => {
       .useValue(mail)
       .compile();
     app = moduleRef.createNestApplication();
-    setupApp(app);
+    await setupApp(app);
     await app.init();
   });
 

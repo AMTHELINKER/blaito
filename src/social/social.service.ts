@@ -1,9 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { FriendDto } from '../shared';
-import { Events, type UserDeletedEvent, type UserExportEvent } from '../common/events';
+import {
+  Events,
+  type FriendshipChangedEvent,
+  type UserDeletedEvent,
+  type UserExportEvent,
+} from '../common/events';
 import { UsersService } from '../identity/users.service';
 import { Friendship } from './entities/friendship.entity';
 
@@ -12,7 +17,24 @@ export class SocialService {
   constructor(
     @InjectRepository(Friendship) private readonly friendships: Repository<Friendship>,
     private readonly users: UsersService,
+    private readonly events: EventEmitter2,
   ) {}
+
+  /** Identifiants des amis acceptés de l'utilisateur. */
+  async friendIds(userId: string): Promise<string[]> {
+    const rows = await this.friendships.find({
+      where: [
+        { requesterId: userId, status: 'accepted' },
+        { addresseeId: userId, status: 'accepted' },
+      ],
+      select: { requesterId: true, addresseeId: true },
+    });
+    return rows.map((f) => (f.requesterId === userId ? f.addresseeId : f.requesterId));
+  }
+
+  private changed(...userIds: string[]): void {
+    this.events.emit(Events.FriendshipChanged, { userIds } satisfies FriendshipChangedEvent);
+  }
 
   async areFriends(a: string, b: string): Promise<boolean> {
     if (a === b) return false;
@@ -78,6 +100,7 @@ export class SocialService {
         this.friendships.create({ requesterId: userId, addresseeId: target.userId }),
       );
     }
+    this.changed(userId, target.userId);
     return {
       userId: target.userId,
       username: target.username,
@@ -91,6 +114,7 @@ export class SocialService {
   async remove(userId: string, otherId: string): Promise<void> {
     await this.friendships.delete({ requesterId: userId, addresseeId: otherId });
     await this.friendships.delete({ requesterId: otherId, addresseeId: userId });
+    this.changed(userId, otherId);
   }
 
   @OnEvent(Events.UserDeleted, { async: true, promisify: true })

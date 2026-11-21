@@ -8,11 +8,12 @@ import { UserSettings } from './entities/user-settings.entity';
 import { UserToken } from './entities/user-token.entity';
 import { User } from './entities/user.entity';
 import { MeController } from './me.controller';
+import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Profile, Session, UserSettings, UserToken])],
-  controllers: [AuthController, MeController],
+  controllers: [AuthController, MeController, UsersController],
   providers: [AuthService, UsersService],
   exports: [UsersService],
 })

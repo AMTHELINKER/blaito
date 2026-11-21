@@ -9,7 +9,13 @@ export const Events = {
   UserExport: 'user.export',
   /** payload: ResourceDeletedEvent — le partage nettoie liens et invitations. */
   BookDeleted: 'writing.book.deleted',
+  /** payload: FriendshipChangedEvent — la messagerie prévient les deux personnes en temps réel. */
+  FriendshipChanged: 'social.friendship.changed',
 } as const;
+
+export interface FriendshipChangedEvent {
+  userIds: string[];
+}
 
 export interface UserDeletedEvent {
   userId: string;

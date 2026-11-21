@@ -14,7 +14,7 @@ try {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const config = setupApp(app);
+  const config = await setupApp(app);
 
   const doc = new DocumentBuilder()
     .setTitle('Laito API')

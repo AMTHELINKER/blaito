@@ -75,13 +75,52 @@ Paramètre optionnel `?share=<token>` pour lire via un lien privé.
 | DELETE  | `/share/grants/:id`                       | —                          | 204                                             |
 | GET     | `/share/with-me`                          | —                          | `BookDto[]`                                     |
 
-## Amis (minimal MVP, requis pour la visibilité « amis »)
+## Personnes
+
+| Méthode | Route                                  | Réponse                                       |
+| ------- | -------------------------------------- | --------------------------------------------- |
+| GET     | `/users/search?q=` (2 caractères min.) | `PublicProfileDto[]` (10 max., sans soi-même) |
+
+## Amis (gérés depuis l'écran Messages)
 
 | Méthode | Route                | Réponse                                                   |
 | ------- | -------------------- | --------------------------------------------------------- |
 | GET     | `/friends`           | `FriendDto[]`                                             |
 | POST    | `/friends/:username` | `FriendDto` — demande, ou acceptation si demande entrante |
 | DELETE  | `/friends/:userId`   | 204                                                       |
+
+## Messagerie
+
+Conversations privées (entre amis uniquement) et groupes (50 membres maximum, composés d'amis de la personne qui ajoute). Toute conversation dont on n'est pas membre répond 404.
+
+| Méthode | Route                                        | Corps                  | Réponse                                                                                       |
+| ------- | -------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
+| GET     | `/conversations?cursor=&limit=`              | —                      | `Paginated<ConversationDto>` — la plus récente d'abord                                        |
+| GET     | `/conversations/unread-count`                | —                      | `{ count }`                                                                                   |
+| POST    | `/conversations/direct`                      | `{ userId }`           | `ConversationDto` — retrouvée si elle existe ; **403** si non amis                            |
+| POST    | `/conversations/group`                       | `{ title, memberIds }` | `ConversationDto` (vous êtes propriétaire)                                                    |
+| GET     | `/conversations/:id`                         | —                      | `ConversationDto`                                                                             |
+| PATCH   | `/conversations/:id`                         | `{ title }`            | `ConversationDto` — propriétaire ou administrateur                                            |
+| POST    | `/conversations/:id/members`                 | `{ userIds }`          | `ConversationDto` — propriétaire ou administrateur                                            |
+| DELETE  | `/conversations/:id/members/:userId`         | —                      | 204 — retirer un membre ; son propre id = quitter                                             |
+| GET     | `/conversations/:id/messages?before=&limit=` | —                      | `Paginated<MessageDto>` — du plus récent au plus ancien ; `before` = id du plus ancien chargé |
+| POST    | `/conversations/:id/messages`                | `{ body, clientId? }`  | `MessageDto` — **403** si la conversation privée est en lecture seule                         |
+| DELETE  | `/conversations/:id/messages/:messageId`     | —                      | 204 — ses propres messages                                                                    |
+| POST    | `/conversations/:id/read`                    | —                      | 204 — tout marquer comme lu                                                                   |
+
+### Temps réel
+
+Socket.IO, espace de noms `/messaging`, authentifié par le jeton d'accès : `io('/messaging', { auth: { token } })`. Un jeton invalide ferme la connexion. Événements reçus (types dans `src/shared`) :
+
+| Événement              | Charge                               | Quand                                                            |
+| ---------------------- | ------------------------------------ | ---------------------------------------------------------------- |
+| `message:new`          | `{ conversationId, message }`        | nouveau message (y compris les siens, pour les autres appareils) |
+| `message:deleted`      | `{ conversationId, messageId }`      | message supprimé                                                 |
+| `conversation:updated` | `{ conversationId }`                 | titre ou membres modifiés : recharger la conversation            |
+| `conversation:removed` | `{ conversationId }`                 | vous avez été retiré du groupe                                   |
+| `conversation:read`    | `{ conversationId, userId, readAt }` | un membre a tout lu                                              |
+| `typing`               | `{ conversationId, userId }`         | un membre écrit (à émettre aussi : `{ conversationId }`)         |
+| `friends:changed`      | `{}`                                 | demande, acceptation ou retrait d'ami : recharger `/friends`     |
 
 ## Catalogue public
 
