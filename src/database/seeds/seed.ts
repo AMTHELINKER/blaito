@@ -5,7 +5,13 @@
 import 'reflect-metadata';
 import { hash } from '@node-rs/argon2';
 import { DEFAULT_READING_PREFERENCES, countWords, slugify, toPlainText } from '../../shared';
+import type { EntityManager } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 import dataSource from '../data-source';
+import { Conversation } from '../../messaging/entities/conversation.entity';
+import { ConversationMember } from '../../messaging/entities/conversation-member.entity';
+import { Message } from '../../messaging/entities/message.entity';
+import { Friendship } from '../../social/entities/friendship.entity';
 import { Profile } from '../../identity/entities/profile.entity';
 import { UserSettings } from '../../identity/entities/user-settings.entity';
 import { User } from '../../identity/entities/user.entity';
@@ -47,12 +53,13 @@ async function main() {
   await dataSource.initialize();
   await dataSource.transaction(async (em) => {
     const email = 'demo@laito.app';
-    let user = await em.findOneBy(User, { email });
-    if (user) {
-      console.log('Données de démo déjà présentes.');
+    const existing = await em.findOneBy(User, { email });
+    if (existing) {
+      console.log('Compte de démo déjà présent.');
+      await seedMessaging(em, existing.id);
       return;
     }
-    user = await em.save(
+    const user = await em.save(
       em.create(User, {
         email,
         passwordHash: await hash('laito-demo'),
@@ -114,8 +121,87 @@ async function main() {
     }
     await em.update(Book, { id: book.id }, { wordCount: total });
     console.log('Compte de démo créé : demo@laito.app / laito-demo');
+    await seedMessaging(em, user.id);
   });
   await dataSource.destroy();
+}
+
+/** Une amie (Léa) et une conversation privée déjà commencée — pour essayer la messagerie. */
+async function seedMessaging(em: EntityManager, demoId: string) {
+  const email = 'lea@laito.app';
+  if (await em.existsBy(User, { email })) {
+    console.log('Messagerie de démo déjà présente.');
+    return;
+  }
+  const lea = await em.save(
+    em.create(User, { email, passwordHash: await hash('laito-demo'), emailVerifiedAt: new Date() }),
+  );
+  await em.save(
+    em.create(Profile, {
+      userId: lea.id,
+      username: 'lea',
+      displayName: 'Léa Martin',
+      bio: 'Lectrice insatiable, poétesse à ses heures.',
+      links: [],
+    }),
+  );
+  await em.save(
+    em.create(UserSettings, {
+      userId: lea.id,
+      onboardingCompleted: true,
+      readingPreferences: DEFAULT_READING_PREFERENCES,
+    }),
+  );
+  await em.save(
+    em.create(Friendship, { requesterId: lea.id, addresseeId: demoId, status: 'accepted' }),
+  );
+
+  const start = Date.now() - 3 * 3600_000;
+  const direct = await em.save(
+    em.create(Conversation, {
+      type: 'direct',
+      directKey: [demoId, lea.id].sort().join(':'),
+      createdBy: lea.id,
+      title: null,
+    }),
+  );
+  await em.save([
+    em.create(ConversationMember, { conversationId: direct.id, userId: demoId, role: 'member' }),
+    em.create(ConversationMember, {
+      conversationId: direct.id,
+      userId: lea.id,
+      role: 'member',
+      lastReadAt: new Date(),
+    }),
+  ]);
+  const lines: [string, string][] = [
+    [
+      lea.id,
+      'J’ai fini le premier chapitre des Jardins de Sel. La lettre jamais ouverte… je veux savoir !',
+    ],
+    [demoId, 'Merci ! Elle s’ouvre au chapitre 4, promis.'],
+    [lea.id, 'Tu me fais lire le brouillon avant tout le monde ?'],
+  ];
+  let last = new Date(start);
+  for (const [i, [senderId, body]] of lines.entries()) {
+    last = new Date(start + i * 20 * 60_000);
+    await em.save(
+      em.create(Message, {
+        id: newIdAt(last),
+        conversationId: direct.id,
+        senderId,
+        body,
+        createdAt: last,
+      }),
+    );
+  }
+  await em.update(Conversation, { id: direct.id }, { lastMessageAt: last });
+  console.log('Amie de démo créée : lea@laito.app / laito-demo (conversation avec demo)');
+}
+
+/** UUID v7 daté (les identifiants de messages servent de curseur chronologique). */
+function newIdAt(date: Date): string {
+  return uuidv7({ msecs: date.getTime() });
 }
 
 main().catch((err) => {
