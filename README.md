@@ -49,7 +49,13 @@ Le contrat de l'API est décrit dans [docs/API.md](docs/API.md).
 
 ## Code partagé avec le front
 
-`src/shared/` contient les types des réponses et les règles du texte (syntaxe légère, comptage de mots). **Une copie identique se trouve dans flaito (`src/shared/`)** : toute modification doit être reportée dans les deux dépôts.
+`src/shared/` contient les types des réponses et les règles du texte (syntaxe légère, comptage de mots). **Ce dépôt en est la source de vérité.**
+
+Flaito en garde une copie, qu'il ne modifie jamais directement :
+1. modifiez `src/shared/` ici et poussez sur `main` ;
+2. dans flaito, lancez `pnpm shared:sync`, puis commitez la copie mise à jour.
+
+La CI de flaito (à chaque push et chaque jour) échoue si sa copie diffère de `src/shared/` sur la branche `main` de blaito. Un changement qui casse le contrat de l'API apparaît donc tout de suite côté front.
 
 ## Migrations
 
