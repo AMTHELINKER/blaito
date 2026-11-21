@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: laito
+          POSTGRES_PASSWORD: laito
+          POSTGRES_DB: laito
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U laito" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://laito:laito@localhost:5432/laito
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-only-secret-ci-only-secret-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Tests unitaires
+        run: pnpm test
+      - name: Migrations (up → down → up)
+        run: |
+          pnpm migration:run
+          pnpm migration:revert
+          pnpm migration:run
+      - name: Aucune dérive entre entités et migrations
+        run: pnpm typeorm migration:generate src/database/migrations/Drift --check
+      - name: Tests e2e (critères d'acceptation du MVP)
+        run: pnpm test:e2e
+      - run: pnpm build
+
+  docker:
+    needs: quality
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t laito-api .
