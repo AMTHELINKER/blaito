@@ -4,7 +4,7 @@ import { loadConfig } from '../config/configuration';
 import { typeOrmOptions } from './typeorm.options';
 
 try {
-  // Charge apps/api/.env pour la CLI TypeORM (Node ≥ 20.12).
+  // Charge le fichier .env pour la CLI TypeORM (Node ≥ 20.12).
   process.loadEnvFile?.();
 } catch {
   /* pas de fichier .env : variables du système */

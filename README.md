@@ -6,6 +6,14 @@ NestJS · TypeScript · TypeORM · PostgreSQL · Redis (BullMQ) — REST version
 
 ## Démarrer
 
+Disposition recommandée : les deux dépôts côte à côte.
+
+```
+laito/
+├── api/   git clone https://github.com/AMTHELINKER/blaito.git api
+└── web/   git clone https://github.com/AMTHELINKER/flaito.git web
+```
+
 Prérequis : Node 22, pnpm (`corepack enable`), Docker.
 
 ```bash
@@ -53,7 +61,7 @@ Le contrat de l'API est décrit dans [docs/API.md](docs/API.md).
 
 Flaito en garde une copie, qu'il ne modifie jamais directement :
 1. modifiez `src/shared/` ici et poussez sur `main` ;
-2. dans flaito, lancez `pnpm shared:sync`, puis commitez la copie mise à jour.
+2. dans `web/` (flaito), lancez `pnpm shared:sync` (il lit `../api`), puis commitez la copie mise à jour.
 
 La CI de flaito (à chaque push et chaque jour) échoue si sa copie diffère de `src/shared/` sur la branche `main` de blaito. Un changement qui casse le contrat de l'API apparaît donc tout de suite côté front.
 

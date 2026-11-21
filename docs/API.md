@@ -1,7 +1,7 @@
 # API Laito v1
 
 Base : `/api/v1` — documentation interactive : `/api/docs` (Swagger).
-Types de réponse : voir `packages/shared/src/index.ts`.
+Types de réponse : voir `src/shared/index.ts`.
 
 ## Authentification
 
