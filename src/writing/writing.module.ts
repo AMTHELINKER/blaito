@@ -11,7 +11,9 @@ import { Tag } from './entities/tag.entity';
 import { WritingService } from './writing.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, Chapter, ChapterContent, ChapterVersion, Tag, BookTag])],
+  imports: [
+    TypeOrmModule.forFeature([Book, Chapter, ChapterContent, ChapterVersion, Tag, BookTag]),
+  ],
   controllers: [BooksController, ChaptersController],
   providers: [WritingService],
   exports: [WritingService],

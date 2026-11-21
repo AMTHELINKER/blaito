@@ -38,7 +38,11 @@ export class AuthorizationService {
     return link;
   }
 
-  async readableBook(viewerId: string | null, bookId: string, shareToken?: string | null): Promise<ReadableBook> {
+  async readableBook(
+    viewerId: string | null,
+    bookId: string,
+    shareToken?: string | null,
+  ): Promise<ReadableBook> {
     const meta = await this.writing.findBookMeta(bookId);
     if (!meta) throw new NotFoundException();
     const chapters = await this.writing.listChapterEntities(bookId);
@@ -62,9 +66,14 @@ export class AuthorizationService {
     return { ...readable, chapter };
   }
 
-  async canRead(viewerId: string | null, ref: ResourceRef, shareToken?: string | null): Promise<boolean> {
+  async canRead(
+    viewerId: string | null,
+    ref: ResourceRef,
+    shareToken?: string | null,
+  ): Promise<boolean> {
     try {
-      if (ref.resourceType === 'book') await this.readableBook(viewerId, ref.resourceId, shareToken);
+      if (ref.resourceType === 'book')
+        await this.readableBook(viewerId, ref.resourceId, shareToken);
       else await this.readableChapter(viewerId, ref.resourceId, shareToken);
       return true;
     } catch (err) {
@@ -92,7 +101,9 @@ export class AuthorizationService {
           new Brackets((w) => {
             w.where("g.resource_type = 'book' AND g.resource_id = :bookId", { bookId: book.id });
             if (chapterIds.length) {
-              w.orWhere("g.resource_type = 'chapter' AND g.resource_id IN (:...chapterIds)", { chapterIds });
+              w.orWhere("g.resource_type = 'chapter' AND g.resource_id IN (:...chapterIds)", {
+                chapterIds,
+              });
             }
           }),
         )

@@ -35,6 +35,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Format (Prettier)
+        run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
       - name: Tests unitaires
@@ -49,6 +51,8 @@ jobs:
       - name: Tests e2e (critères d'acceptation du MVP)
         run: pnpm test:e2e
       - run: pnpm build
+      - name: Dépendances sans faille grave
+        run: pnpm audit --prod --audit-level high
 
   docker:
     needs: quality

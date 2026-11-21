@@ -1,9 +1,20 @@
-import { AccessContext, canReadBook, canReadChapter, levelAllows, PolicyBook, PolicyChapter } from './access-policy';
+import {
+  AccessContext,
+  canReadBook,
+  canReadChapter,
+  levelAllows,
+  PolicyBook,
+  PolicyChapter,
+} from './access-policy';
 
 const AUTHOR = 'author';
 const READER = 'reader';
 
-const book = (visibility: PolicyBook['visibility']): PolicyBook => ({ id: 'b1', authorId: AUTHOR, visibility });
+const book = (visibility: PolicyBook['visibility']): PolicyBook => ({
+  id: 'b1',
+  authorId: AUTHOR,
+  visibility,
+});
 const chapter = (
   visibility: PolicyChapter['visibility'],
   status: PolicyChapter['status'] = 'published',
@@ -29,7 +40,9 @@ describe('levelAllows', () => {
     ['link', { isFriend: true }, false],
     ['private', { hasGrant: true }, true],
   ] as const)('%s with %o → %s', (level, input, expected) => {
-    expect(levelAllows(level, { hasGrant: false, hasToken: false, isFriend: false, ...input })).toBe(expected);
+    expect(
+      levelAllows(level, { hasGrant: false, hasToken: false, isFriend: false, ...input }),
+    ).toBe(expected);
   });
 });
 
@@ -50,22 +63,54 @@ describe('canReadBook', () => {
     expect(canReadBook(book('friends'), ids, ctx({ isFriendOfAuthor: true }))).toBe(true);
   });
   it('« lien » exige un lien valide sur le livre ou un de ses chapitres', () => {
-    expect(canReadBook(book('link'), ids, ctx({ shareLink: { resourceType: 'book', resourceId: 'b1' } }))).toBe(true);
-    expect(canReadBook(book('link'), ids, ctx({ shareLink: { resourceType: 'chapter', resourceId: 'c2' } }))).toBe(true);
-    expect(canReadBook(book('link'), ids, ctx({ shareLink: { resourceType: 'book', resourceId: 'autre' } }))).toBe(false);
+    expect(
+      canReadBook(
+        book('link'),
+        ids,
+        ctx({ shareLink: { resourceType: 'book', resourceId: 'b1' } }),
+      ),
+    ).toBe(true);
+    expect(
+      canReadBook(
+        book('link'),
+        ids,
+        ctx({ shareLink: { resourceType: 'chapter', resourceId: 'c2' } }),
+      ),
+    ).toBe(true);
+    expect(
+      canReadBook(
+        book('link'),
+        ids,
+        ctx({ shareLink: { resourceType: 'book', resourceId: 'autre' } }),
+      ),
+    ).toBe(false);
   });
   it('un lien ne suffit pas sur un livre redevenu privé', () => {
-    expect(canReadBook(book('private'), ids, ctx({ shareLink: { resourceType: 'book', resourceId: 'b1' } }))).toBe(false);
+    expect(
+      canReadBook(
+        book('private'),
+        ids,
+        ctx({ shareLink: { resourceType: 'book', resourceId: 'b1' } }),
+      ),
+    ).toBe(false);
   });
   it('une invitation ouvre un livre privé', () => {
-    expect(canReadBook(book('private'), ids, ctx({ grants: [{ resourceType: 'book', resourceId: 'b1' }] }))).toBe(true);
+    expect(
+      canReadBook(
+        book('private'),
+        ids,
+        ctx({ grants: [{ resourceType: 'book', resourceId: 'b1' }] }),
+      ),
+    ).toBe(true);
   });
 });
 
 describe('canReadChapter', () => {
   it("un brouillon n'est jamais visible d'un non-auteur", () => {
     expect(canReadChapter(book('public'), chapter('public', 'draft'), ids, ctx())).toBe(false);
-    expect(canReadChapter(book('public'), chapter('public', 'draft'), ids, ctx({ viewerId: AUTHOR }))).toBe(true);
+    expect(
+      canReadChapter(book('public'), chapter('public', 'draft'), ids, ctx({ viewerId: AUTHOR })),
+    ).toBe(true);
   });
   it("un chapitre public d'un livre privé reste inaccessible", () => {
     expect(canReadChapter(book('private'), chapter('public'), ids, ctx())).toBe(false);
@@ -88,6 +133,8 @@ describe('canReadChapter', () => {
     expect(canReadChapter(book('private'), chapter('private'), ids, c)).toBe(true);
   });
   it("refuse un chapitre qui n'appartient pas au livre", () => {
-    expect(canReadChapter(book('public'), { ...chapter('public'), bookId: 'x' }, ids, ctx())).toBe(false);
+    expect(canReadChapter(book('public'), { ...chapter('public'), bookId: 'x' }, ids, ctx())).toBe(
+      false,
+    );
   });
 });

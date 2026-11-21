@@ -5,7 +5,12 @@ import { In, Repository } from 'typeorm';
 import type { AccessGrantDto, BookDto, ResourceType, ShareLinkDto } from '../shared';
 import { APP_CONFIG, AppConfig } from '../config/configuration';
 import { randomToken } from '../common/crypto';
-import { Events, type BookDeletedEvent, type UserDeletedEvent, type UserExportEvent } from '../common/events';
+import {
+  Events,
+  type BookDeletedEvent,
+  type UserDeletedEvent,
+  type UserExportEvent,
+} from '../common/events';
 import { UsersService } from '../identity/users.service';
 import { WritingService } from '../writing/writing.service';
 import { AuthorizationService } from './authorization.service';
@@ -26,16 +31,24 @@ export class SharingService {
 
   // ───────────────────────── Liens ─────────────────────────
 
-  async listLinks(ownerId: string, resourceType: ResourceType, resourceId: string): Promise<ShareLinkDto[]> {
+  async listLinks(
+    ownerId: string,
+    resourceType: ResourceType,
+    resourceId: string,
+  ): Promise<ShareLinkDto[]> {
     await this.assertOwner(ownerId, resourceType, resourceId);
-    const rows = await this.links.find({ where: { resourceType, resourceId }, order: { createdAt: 'DESC' } });
+    const rows = await this.links.find({
+      where: { resourceType, resourceId },
+      order: { createdAt: 'DESC' },
+    });
     return rows.map((l) => this.toLinkDto(l));
   }
 
   async createLink(ownerId: string, dto: CreateShareLinkDto): Promise<ShareLinkDto> {
     await this.assertOwner(ownerId, dto.resourceType, dto.resourceId);
     const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
-    if (expiresAt && expiresAt <= new Date()) throw new BadRequestException("La date d'expiration est passée");
+    if (expiresAt && expiresAt <= new Date())
+      throw new BadRequestException("La date d'expiration est passée");
     // Un lien n'a d'effet que si la ressource est au moins en « lien privé » : on ouvre un livre privé.
     if (dto.resourceType === 'book') {
       const meta = await this.writing.findBookMeta(dto.resourceId);
@@ -89,9 +102,16 @@ export class SharingService {
 
   // ───────────────────────── Invitations ─────────────────────────
 
-  async listGrants(ownerId: string, resourceType: ResourceType, resourceId: string): Promise<AccessGrantDto[]> {
+  async listGrants(
+    ownerId: string,
+    resourceType: ResourceType,
+    resourceId: string,
+  ): Promise<AccessGrantDto[]> {
     await this.assertOwner(ownerId, resourceType, resourceId);
-    const rows = await this.grants.find({ where: { resourceType, resourceId }, order: { createdAt: 'DESC' } });
+    const rows = await this.grants.find({
+      where: { resourceType, resourceId },
+      order: { createdAt: 'DESC' },
+    });
     const profiles = await this.users.getPublicProfiles(rows.map((g) => g.granteeUserId));
     return rows.flatMap((g) => {
       const grantee = profiles.get(g.granteeUserId);
@@ -128,7 +148,10 @@ export class SharingService {
 
   /** Livres auxquels l'utilisateur a été invité (et qu'il peut effectivement lire). */
   async sharedWithMe(userId: string): Promise<BookDto[]> {
-    const rows = await this.grants.find({ where: { granteeUserId: userId }, order: { createdAt: 'DESC' } });
+    const rows = await this.grants.find({
+      where: { granteeUserId: userId },
+      order: { createdAt: 'DESC' },
+    });
     const bookIds = new Set<string>();
     for (const g of rows) {
       if (g.resourceType === 'book') bookIds.add(g.resourceId);
@@ -139,7 +162,8 @@ export class SharingService {
     }
     const readable = [];
     for (const id of bookIds) {
-      if (await this.authz.canRead(userId, { resourceType: 'book', resourceId: id })) readable.push(id);
+      if (await this.authz.canRead(userId, { resourceType: 'book', resourceId: id }))
+        readable.push(id);
     }
     const books = await this.writing.findBooksByIds(readable);
     const dtos = await this.writing.booksToDtos(books, { onlyVisibleChapters: true });
@@ -222,4 +246,3 @@ export class SharingService {
     };
   }
 }
-

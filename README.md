@@ -31,25 +31,25 @@ Toute la pile en conteneurs : `docker compose --profile app up --build`.
 
 ## Commandes
 
-| Commande | Effet |
-|---|---|
-| `pnpm lint` / `pnpm typecheck` / `pnpm test` | qualité et tests unitaires |
-| `pnpm test:e2e` | critères d'acceptation du MVP (PostgreSQL + Redis + migrations requis) |
-| `pnpm migration:generate src/database/migrations/<Nom>` | générer une migration après un changement d'entité |
-| `pnpm migration:revert` | annuler la dernière migration |
+| Commande                                                | Effet                                                                  |
+| ------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm lint` / `pnpm typecheck` / `pnpm test`            | qualité et tests unitaires                                             |
+| `pnpm test:e2e`                                         | critères d'acceptation du MVP (PostgreSQL + Redis + migrations requis) |
+| `pnpm migration:generate src/database/migrations/<Nom>` | générer une migration après un changement d'entité                     |
+| `pnpm migration:revert`                                 | annuler la dernière migration                                          |
 
 ## Architecture
 
 Un domaine = un module NestJS = un schéma PostgreSQL :
 
-| Domaine | Schéma | Rôle |
-|---|---|---|
-| identité | `identity` | comptes, profils, sessions, paramètres, jetons e-mail |
-| écriture | `writing` | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
-| partage | `sharing` | liens de partage, invitations, **service d'autorisation unique** |
-| social | `social` | amitiés (nécessaires à la visibilité « amis ») |
-| bibliothèque | `library` | progression de lecture, favoris |
-| catalogue | — | composition : recherche publique, profils auteurs |
+| Domaine      | Schéma     | Rôle                                                                        |
+| ------------ | ---------- | --------------------------------------------------------------------------- |
+| identité     | `identity` | comptes, profils, sessions, paramètres, jetons e-mail                       |
+| écriture     | `writing`  | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
+| partage      | `sharing`  | liens de partage, invitations, **service d'autorisation unique**            |
+| social       | `social`   | amitiés (nécessaires à la visibilité « amis »)                              |
+| bibliothèque | `library`  | progression de lecture, favoris                                             |
+| catalogue    | —          | composition : recherche publique, profils auteurs                           |
 
 Les domaines ne lisent jamais les tables des autres. Ils passent par les services exportés ou par des événements (`user.deleted`, `user.export`, `writing.book.deleted`). Aucune clé étrangère entre schémas ; clés primaires en UUID v7.
 
@@ -60,6 +60,7 @@ Le contrat de l'API est décrit dans [docs/API.md](docs/API.md).
 `src/shared/` contient les types des réponses et les règles du texte (syntaxe légère, comptage de mots). **Ce dépôt en est la source de vérité.**
 
 Flaito en garde une copie, qu'il ne modifie jamais directement :
+
 1. modifiez `src/shared/` ici et poussez sur `main` ;
 2. dans `web/` (flaito), lancez `pnpm shared:sync` (il lit `../api`), puis commitez la copie mise à jour.
 

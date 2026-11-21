@@ -1,4 +1,12 @@
-import { IsDateString, IsIn, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import type { GrantPermission, ResourceType } from '../../shared';
 
 export class ResourceQueryDto {

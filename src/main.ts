@@ -18,7 +18,7 @@ async function bootstrap() {
 
   const doc = new DocumentBuilder()
     .setTitle('Laito API')
-    .setDescription("API REST de Laito — écriture et partage de livres")
+    .setDescription('API REST de Laito — écriture et partage de livres')
     .setVersion('1.0')
     .addBearerAuth()
     .addCookieAuth('laito_rt')

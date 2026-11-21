@@ -9,7 +9,12 @@ import { LibraryService } from './library.service';
 import { ReadingController } from './reading.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ReadingProgress, Bookmark]), SharingModule, WritingModule, IdentityModule],
+  imports: [
+    TypeOrmModule.forFeature([ReadingProgress, Bookmark]),
+    SharingModule,
+    WritingModule,
+    IdentityModule,
+  ],
   controllers: [ReadingController],
   providers: [LibraryService],
   exports: [LibraryService],

@@ -10,7 +10,12 @@ import { SharingController } from './sharing.controller';
 import { SharingService } from './sharing.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ShareLink, AccessGrant]), WritingModule, SocialModule, IdentityModule],
+  imports: [
+    TypeOrmModule.forFeature([ShareLink, AccessGrant]),
+    WritingModule,
+    SocialModule,
+    IdentityModule,
+  ],
   controllers: [SharingController],
   providers: [AuthorizationService, SharingService],
   exports: [AuthorizationService],

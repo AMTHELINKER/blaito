@@ -24,7 +24,12 @@ export class User extends UuidEntity {
   })
   role: UserRole;
 
-  @Column({ type: 'enum', enum: ['active', 'suspended'], enumName: 'user_status', default: 'active' })
+  @Column({
+    type: 'enum',
+    enum: ['active', 'suspended'],
+    enumName: 'user_status',
+    default: 'active',
+  })
   status: UserStatus;
 
   @OneToOne(() => Profile, (p) => p.user)

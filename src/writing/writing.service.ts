@@ -12,7 +12,12 @@ import {
   type Visibility,
   type WritingStatus,
 } from '../shared';
-import { Events, type BookDeletedEvent, type UserDeletedEvent, type UserExportEvent } from '../common/events';
+import {
+  Events,
+  type BookDeletedEvent,
+  type UserDeletedEvent,
+  type UserExportEvent,
+} from '../common/events';
 import { StorageService } from '../storage/storage.service';
 import type {
   CreateBookDto,
@@ -134,7 +139,11 @@ export class WritingService {
     return this.getOwned(authorId, bookId);
   }
 
-  async setCover(authorId: string, bookId: string, coverUrl: string): Promise<{ previous: string | null; book: BookDto }> {
+  async setCover(
+    authorId: string,
+    bookId: string,
+    coverUrl: string,
+  ): Promise<{ previous: string | null; book: BookDto }> {
     const book = await this.findOwnedBook(authorId, bookId);
     const previous = book.coverUrl;
     book.coverUrl = coverUrl;
@@ -150,7 +159,11 @@ export class WritingService {
     return rows.map(toChapterDto);
   }
 
-  async createChapter(authorId: string, bookId: string, dto: CreateChapterDto): Promise<ChapterDto> {
+  async createChapter(
+    authorId: string,
+    bookId: string,
+    dto: CreateChapterDto,
+  ): Promise<ChapterDto> {
     const book = await this.findOwnedBook(authorId, bookId);
     const chapter = await this.dataSource.transaction(async (em) => {
       const { max } = (await em
@@ -169,7 +182,9 @@ export class WritingService {
           visibility: book.visibility,
         }),
       );
-      await em.save(em.create(ChapterContent, { chapterId: c.id, content: '', contentText: '', version: 0 }));
+      await em.save(
+        em.create(ChapterContent, { chapterId: c.id, content: '', contentText: '', version: 0 }),
+      );
       await em.update(Book, { id: bookId }, { updatedAt: new Date() });
       return c;
     });
@@ -177,7 +192,11 @@ export class WritingService {
   }
 
   /** Réorganisation en une seule requête SQL : les positions suivent l'ordre reçu. */
-  async reorderChapters(authorId: string, bookId: string, chapterIds: string[]): Promise<ChapterDto[]> {
+  async reorderChapters(
+    authorId: string,
+    bookId: string,
+    chapterIds: string[],
+  ): Promise<ChapterDto[]> {
     await this.findOwnedBook(authorId, bookId);
     const existing = await this.chapters.find({ where: { bookId }, select: { id: true } });
     const known = new Set(existing.map((c) => c.id));
@@ -194,7 +213,11 @@ export class WritingService {
     return this.listChapters(authorId, bookId);
   }
 
-  async updateChapter(authorId: string, chapterId: string, dto: UpdateChapterDto): Promise<ChapterDto> {
+  async updateChapter(
+    authorId: string,
+    chapterId: string,
+    dto: UpdateChapterDto,
+  ): Promise<ChapterDto> {
     const chapter = await this.findOwnedChapter(authorId, chapterId);
     if (dto.title !== undefined) chapter.title = dto.title;
     if (dto.visibility !== undefined) chapter.visibility = dto.visibility;
@@ -225,7 +248,12 @@ export class WritingService {
   async getContent(authorId: string, chapterId: string): Promise<ChapterContentDto> {
     await this.findOwnedChapter(authorId, chapterId);
     const c = await this.contents.findOneByOrFail({ chapterId });
-    return { chapterId, content: c.content, version: c.version, updatedAt: c.updatedAt.toISOString() };
+    return {
+      chapterId,
+      content: c.content,
+      version: c.version,
+      updatedAt: c.updatedAt.toISOString(),
+    };
   }
 
   /**
@@ -233,30 +261,55 @@ export class WritingService {
    * plus ancienne (édition hors ligne sur deux appareils), la version écrasée est
    * conservée dans l'historique avant d'être remplacée.
    */
-  async saveContent(authorId: string, chapterId: string, dto: SaveContentDto): Promise<ChapterContentDto> {
+  async saveContent(
+    authorId: string,
+    chapterId: string,
+    dto: SaveContentDto,
+  ): Promise<ChapterContentDto> {
     const chapter = await this.findOwnedChapter(authorId, chapterId);
     return this.dataSource.transaction(async (em) => {
       const current = await em.findOne(ChapterContent, {
         where: { chapterId },
         lock: { mode: 'pessimistic_write' },
       });
-      const row = current ?? em.create(ChapterContent, { chapterId, content: '', contentText: '', version: 0 });
+      const row =
+        current ??
+        em.create(ChapterContent, { chapterId, content: '', contentText: '', version: 0 });
       if (row.content === dto.content) {
-        return { chapterId, content: row.content, version: row.version, updatedAt: (row.updatedAt ?? new Date()).toISOString() };
+        return {
+          chapterId,
+          content: row.content,
+          version: row.version,
+          updatedAt: (row.updatedAt ?? new Date()).toISOString(),
+        };
       }
       const conflict = dto.baseVersion !== undefined && dto.baseVersion < row.version;
-      const last = await em.findOne(ChapterVersion, { where: { chapterId }, order: { createdAt: 'DESC' } });
+      const last = await em.findOne(ChapterVersion, {
+        where: { chapterId },
+        order: { createdAt: 'DESC' },
+      });
       const stale = !last || Date.now() - last.createdAt.getTime() > SNAPSHOT_INTERVAL_MS;
       if (row.content && (conflict || stale)) {
-        await em.save(em.create(ChapterVersion, { chapterId, content: row.content, version: row.version }));
+        await em.save(
+          em.create(ChapterVersion, { chapterId, content: row.content, version: row.version }),
+        );
       }
       row.content = dto.content;
       row.contentText = toPlainText(dto.content);
       row.version += 1;
       const saved = await em.save(row);
-      await em.update(Chapter, { id: chapterId }, { wordCount: countWords(dto.content), updatedAt: new Date() });
+      await em.update(
+        Chapter,
+        { id: chapterId },
+        { wordCount: countWords(dto.content), updatedAt: new Date() },
+      );
       await this.refreshBookWordCount(em, chapter.bookId);
-      return { chapterId, content: saved.content, version: saved.version, updatedAt: saved.updatedAt.toISOString() };
+      return {
+        chapterId,
+        content: saved.content,
+        version: saved.version,
+        updatedAt: saved.updatedAt.toISOString(),
+      };
     });
   }
 
@@ -264,13 +317,27 @@ export class WritingService {
 
   async findBookMeta(bookId: string): Promise<(BookMeta & { book: Book }) | null> {
     const book = await this.books.findOneBy({ id: bookId });
-    return book ? { id: book.id, authorId: book.authorId, visibility: book.visibility, status: book.status, book } : null;
+    return book
+      ? {
+          id: book.id,
+          authorId: book.authorId,
+          visibility: book.visibility,
+          status: book.status,
+          book,
+        }
+      : null;
   }
 
   async findChapterMeta(chapterId: string): Promise<(ChapterMeta & { chapter: Chapter }) | null> {
     const chapter = await this.chapters.findOneBy({ id: chapterId });
     return chapter
-      ? { id: chapter.id, bookId: chapter.bookId, visibility: chapter.visibility, status: chapter.status, chapter }
+      ? {
+          id: chapter.id,
+          bookId: chapter.bookId,
+          visibility: chapter.visibility,
+          status: chapter.status,
+          chapter,
+        }
       : null;
   }
 
@@ -332,7 +399,11 @@ export class WritingService {
         afterId: query.after.id,
       });
     }
-    return qb.orderBy('b.published_at', 'DESC').addOrderBy('b.id', 'DESC').limit(query.limit).getMany();
+    return qb
+      .orderBy('b.published_at', 'DESC')
+      .addOrderBy('b.id', 'DESC')
+      .limit(query.limit)
+      .getMany();
   }
 
   async publicBooksByAuthor(authorId: string): Promise<BookDto[]> {
@@ -359,7 +430,11 @@ export class WritingService {
 
   @OnEvent(Events.UserDeleted, { async: true, promisify: true })
   async onUserDeleted({ userId }: UserDeletedEvent): Promise<void> {
-    const books = await this.books.find({ where: { authorId: userId }, withDeleted: true, relations: { chapters: true } });
+    const books = await this.books.find({
+      where: { authorId: userId },
+      withDeleted: true,
+      relations: { chapters: true },
+    });
     for (const b of books) {
       await this.storage.remove(b.coverUrl);
       await this.events.emitAsync(Events.BookDeleted, {
@@ -373,7 +448,10 @@ export class WritingService {
 
   @OnEvent(Events.UserExport, { async: true, promisify: true })
   async onUserExport({ userId }: UserExportEvent) {
-    const books = await this.books.find({ where: { authorId: userId }, relations: { chapters: { content: true } } });
+    const books = await this.books.find({
+      where: { authorId: userId },
+      relations: { chapters: { content: true } },
+    });
     return {
       writing: books.map((b) => ({
         id: b.id,
@@ -385,7 +463,13 @@ export class WritingService {
         createdAt: b.createdAt,
         chapters: (b.chapters ?? [])
           .sort((a, c) => a.position - c.position)
-          .map((c) => ({ id: c.id, title: c.title, status: c.status, visibility: c.visibility, content: c.content?.content ?? '' })),
+          .map((c) => ({
+            id: c.id,
+            title: c.title,
+            status: c.status,
+            visibility: c.visibility,
+            content: c.content?.content ?? '',
+          })),
       })),
     };
   }
@@ -400,7 +484,10 @@ export class WritingService {
   }
 
   private async findOwnedChapter(authorId: string, chapterId: string): Promise<Chapter> {
-    const chapter = await this.chapters.findOne({ where: { id: chapterId }, relations: { book: true } });
+    const chapter = await this.chapters.findOne({
+      where: { id: chapterId },
+      relations: { book: true },
+    });
     if (!chapter || !chapter.book || chapter.book.authorId !== authorId || chapter.book.deletedAt) {
       throw new NotFoundException();
     }
@@ -438,7 +525,10 @@ export class WritingService {
   }
 
   /** Ajoute nombre de chapitres et étiquettes, en deux requêtes pour toute la liste. */
-  private async decorate(books: Book[], opts: { onlyVisibleChapters: boolean }): Promise<BookDto[]> {
+  private async decorate(
+    books: Book[],
+    opts: { onlyVisibleChapters: boolean },
+  ): Promise<BookDto[]> {
     if (!books.length) return [];
     const ids = books.map((b) => b.id);
     const counts = await this.chapters
@@ -462,4 +552,3 @@ export class WritingService {
     );
   }
 }
-

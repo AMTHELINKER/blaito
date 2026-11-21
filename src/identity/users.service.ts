@@ -50,14 +50,19 @@ export class UsersService {
     }
     Object.assign(profile, {
       ...(dto.username !== undefined && { username: dto.username }),
-      ...(dto.displayName !== undefined && { displayName: dto.displayName.trim() || profile.username }),
+      ...(dto.displayName !== undefined && {
+        displayName: dto.displayName.trim() || profile.username,
+      }),
       ...(dto.bio !== undefined && { bio: dto.bio.trim() || null }),
       ...(dto.links !== undefined && { links: dto.links }),
     });
     return toProfileDto(await this.profiles.save(profile));
   }
 
-  async setAvatar(userId: string, avatarUrl: string): Promise<{ previous: string | null; profile: ProfileDto }> {
+  async setAvatar(
+    userId: string,
+    avatarUrl: string,
+  ): Promise<{ previous: string | null; profile: ProfileDto }> {
     const profile = await this.profiles.findOneByOrFail({ userId });
     const previous = profile.avatarUrl;
     profile.avatarUrl = avatarUrl;
@@ -145,7 +150,12 @@ export function toProfileDto(p: Profile): ProfileDto {
 }
 
 export function toPublicProfile(p: Profile): PublicProfile {
-  return { userId: p.userId, username: p.username, displayName: p.displayName, avatarUrl: p.avatarUrl };
+  return {
+    userId: p.userId,
+    username: p.username,
+    displayName: p.displayName,
+    avatarUrl: p.avatarUrl,
+  };
 }
 
 export function toSettingsDto(s?: UserSettings | null): UserSettingsDto {

@@ -52,7 +52,11 @@ export class BooksController {
   }
 
   @Patch(':id')
-  update(@CurrentUser() user: AuthUser, @Param('id', UuidParam) id: string, @Body() dto: UpdateBookDto) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateBookDto,
+  ) {
     return this.writing.update(user.id, id, dto);
   }
 

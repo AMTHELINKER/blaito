@@ -22,7 +22,11 @@ export class LibraryService {
     private readonly users: UsersService,
   ) {}
 
-  async readBook(viewerId: string | null, bookId: string, share?: string): Promise<ReadableBookDto> {
+  async readBook(
+    viewerId: string | null,
+    bookId: string,
+    share?: string,
+  ): Promise<ReadableBookDto> {
     const r = await this.authz.readableBook(viewerId, bookId, share);
     const dto = await this.writing.bookToDto(r.book, { onlyVisibleChapters: !r.isOwner });
     const authors = await this.users.getPublicProfiles([r.book.authorId]);
@@ -31,12 +35,18 @@ export class LibraryService {
       book: { ...dto, chapterCount: r.chapters.length, author: authors.get(r.book.authorId) },
       chapters: r.chapters.map(toChapterDto),
       progress:
-        progress && r.chapters.some((c) => c.id === progress.chapterId) ? toProgressDto(progress) : null,
+        progress && r.chapters.some((c) => c.id === progress.chapterId)
+          ? toProgressDto(progress)
+          : null,
       isOwner: r.isOwner,
     };
   }
 
-  async readChapter(viewerId: string | null, chapterId: string, share?: string): Promise<ReadableChapterDto> {
+  async readChapter(
+    viewerId: string | null,
+    chapterId: string,
+    share?: string,
+  ): Promise<ReadableChapterDto> {
     const r = await this.authz.readableChapter(viewerId, chapterId, share);
     const index = r.chapters.findIndex((c) => c.id === chapterId);
     return {
@@ -59,7 +69,11 @@ export class LibraryService {
 
   /** Lectures en cours, les plus récentes d'abord (livres toujours accessibles uniquement). */
   async listProgress(userId: string): Promise<(ReadingProgressDto & { book: BookDto })[]> {
-    const rows = await this.progress.find({ where: { userId }, order: { updatedAt: 'DESC' }, take: 30 });
+    const rows = await this.progress.find({
+      where: { userId },
+      order: { updatedAt: 'DESC' },
+      take: 30,
+    });
     const out: (ReadingProgressDto & { book: BookDto })[] = [];
     for (const p of rows) {
       try {
@@ -104,10 +118,20 @@ export class LibraryService {
       this.progress.find({ where: { userId } }),
       this.bookmarks.find({ where: { userId } }),
     ]);
-    return { library: { readingProgress: progress.map(toProgressDto), bookmarks: bookmarks.map((b) => b.bookId) } };
+    return {
+      library: {
+        readingProgress: progress.map(toProgressDto),
+        bookmarks: bookmarks.map((b) => b.bookId),
+      },
+    };
   }
 }
 
 function toProgressDto(p: ReadingProgress): ReadingProgressDto {
-  return { bookId: p.bookId, chapterId: p.chapterId, position: p.position, updatedAt: p.updatedAt.toISOString() };
+  return {
+    bookId: p.bookId,
+    chapterId: p.chapterId,
+    position: p.position,
+    updatedAt: p.updatedAt.toISOString(),
+  };
 }

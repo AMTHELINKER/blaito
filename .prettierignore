@@ -1,0 +1,5 @@
+dist
+coverage
+uploads
+pnpm-lock.yaml
+src/database/migrations/*InitialSchema.ts

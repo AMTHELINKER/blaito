@@ -62,7 +62,9 @@ export class StorageService {
     const key = match[0];
     try {
       if (this.s3) {
-        await this.s3.send(new DeleteObjectCommand({ Bucket: this.config.storage.s3.bucket, Key: key }));
+        await this.s3.send(
+          new DeleteObjectCommand({ Bucket: this.config.storage.s3.bucket, Key: key }),
+        );
       } else {
         await unlink(join(this.localRoot, key));
       }

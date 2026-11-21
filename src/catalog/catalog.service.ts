@@ -34,7 +34,8 @@ export class CatalogService {
       if (!ids.length) return this.search({ ...p, sort: 'recent' });
       const start = decodeCursor<[number]>(p.cursor)?.[0] ?? 0;
       const books = (await this.writing.findBooksByIds(ids)).filter(
-        (b) => b.visibility === 'public' && b.status !== 'draft' && (!p.genre || b.genre === p.genre),
+        (b) =>
+          b.visibility === 'public' && b.status !== 'draft' && (!p.genre || b.genre === p.genre),
       );
       const page = books.slice(start, start + limit);
       return {
@@ -56,7 +57,10 @@ export class CatalogService {
     const last = page[page.length - 1];
     return {
       items: await this.withAuthors(page),
-      nextCursor: rows.length > limit && last ? encodeCursor([last.publishedAt!.toISOString(), last.id]) : null,
+      nextCursor:
+        rows.length > limit && last
+          ? encodeCursor([last.publishedAt!.toISOString(), last.id])
+          : null,
     };
   }
 

@@ -11,9 +11,9 @@ describe('image validation', () => {
     expect(sniffImage(Buffer.from('GIF89a'))).toBeNull();
   });
   it('refuse plus de 5 Mo', () => {
-    expect(() => assertValidImage(file(Buffer.from([0xff, 0xd8, 0xff]), 5 * 1024 * 1024 + 1))).toThrow(
-      PayloadTooLargeException,
-    );
+    expect(() =>
+      assertValidImage(file(Buffer.from([0xff, 0xd8, 0xff]), 5 * 1024 * 1024 + 1)),
+    ).toThrow(PayloadTooLargeException);
   });
   it('refuse un format non supporté', () => {
     expect(() => assertValidImage(file(Buffer.from('<svg/>')))).toThrow(BadRequestException);

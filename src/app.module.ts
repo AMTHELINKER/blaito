@@ -26,7 +26,10 @@ import { WritingModule } from './writing/writing.module';
     AppConfigModule,
     TypeOrmModule.forRootAsync({
       inject: [APP_CONFIG],
-      useFactory: (config: AppConfig) => ({ ...typeOrmOptions(config.databaseUrl), autoLoadEntities: true }),
+      useFactory: (config: AppConfig) => ({
+        ...typeOrmOptions(config.databaseUrl),
+        autoLoadEntities: true,
+      }),
     }),
     BullModule.forRootAsync({
       inject: [APP_CONFIG],

@@ -160,7 +160,8 @@ export class AuthService {
 
   async logout(rawCookie: string | undefined): Promise<void> {
     const [sessionId] = (rawCookie ?? '').split('.');
-    if (sessionId && /^[0-9a-f-]{36}$/.test(sessionId)) await this.sessions.delete({ id: sessionId });
+    if (sessionId && /^[0-9a-f-]{36}$/.test(sessionId))
+      await this.sessions.delete({ id: sessionId });
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -202,7 +203,11 @@ export class AuthService {
 
   // ───────────────────────── interne ─────────────────────────
 
-  private async issueSession(user: User, userAgent?: string, existing?: Session): Promise<IssuedSession> {
+  private async issueSession(
+    user: User,
+    userAgent?: string,
+    existing?: Session,
+  ): Promise<IssuedSession> {
     const secret = randomToken(32);
     const refreshExpiresAt = new Date(Date.now() + this.config.refreshTtlDays * 86400_000);
     const session = existing ?? this.sessions.create({ userId: user.id });

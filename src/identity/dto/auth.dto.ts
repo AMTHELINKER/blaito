@@ -25,7 +25,9 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(PASSWORD_MIN_LENGTH, { message: 'Le mot de passe doit contenir au moins 8 caractères' })
+  @MinLength(PASSWORD_MIN_LENGTH, {
+    message: 'Le mot de passe doit contenir au moins 8 caractères',
+  })
   @MaxLength(128)
   password: string;
 
@@ -79,7 +81,9 @@ export class ResetPasswordDto {
   token: string;
 
   @IsString()
-  @MinLength(PASSWORD_MIN_LENGTH, { message: 'Le mot de passe doit contenir au moins 8 caractères' })
+  @MinLength(PASSWORD_MIN_LENGTH, {
+    message: 'Le mot de passe doit contenir au moins 8 caractères',
+  })
   @MaxLength(128)
   password: string;
 }

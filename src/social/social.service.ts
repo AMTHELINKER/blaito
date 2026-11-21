@@ -40,7 +40,8 @@ export class SocialService {
         {
           ...p,
           status: f.status,
-          direction: f.status === 'accepted' ? 'mutual' : f.requesterId === userId ? 'outgoing' : 'incoming',
+          direction:
+            f.status === 'accepted' ? 'mutual' : f.requesterId === userId ? 'outgoing' : 'incoming',
         } satisfies FriendDto,
       ];
     });
@@ -50,10 +51,17 @@ export class SocialService {
   async request(userId: string, username: string): Promise<FriendDto> {
     const target = await this.users.findProfileByUsername(username);
     if (!target) throw new NotFoundException('Utilisateur introuvable');
-    if (target.userId === userId) throw new BadRequestException('Vous ne pouvez pas vous ajouter vous-même');
+    if (target.userId === userId)
+      throw new BadRequestException('Vous ne pouvez pas vous ajouter vous-même');
 
-    const incoming = await this.friendships.findOneBy({ requesterId: target.userId, addresseeId: userId });
-    const outgoing = await this.friendships.findOneBy({ requesterId: userId, addresseeId: target.userId });
+    const incoming = await this.friendships.findOneBy({
+      requesterId: target.userId,
+      addresseeId: userId,
+    });
+    const outgoing = await this.friendships.findOneBy({
+      requesterId: userId,
+      addresseeId: target.userId,
+    });
     let status: FriendDto['status'] = 'pending';
     let direction: FriendDto['direction'] = 'outgoing';
     if (incoming?.status === 'blocked') throw new NotFoundException('Utilisateur introuvable');
@@ -66,7 +74,9 @@ export class SocialService {
       status = outgoing.status;
       direction = outgoing.status === 'accepted' ? 'mutual' : 'outgoing';
     } else {
-      await this.friendships.save(this.friendships.create({ requesterId: userId, addresseeId: target.userId }));
+      await this.friendships.save(
+        this.friendships.create({ requesterId: userId, addresseeId: target.userId }),
+      );
     }
     return {
       userId: target.userId,

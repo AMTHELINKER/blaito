@@ -37,7 +37,10 @@ describe('MVP Laito (e2e)', () => {
   async function signUp(name: string) {
     const email = `${name}-${run}@test.laito`;
     const username = `${name}_${run}`;
-    await api().post('/api/v1/auth/register').send({ email, password: 'motdepasse', username }).expect(201);
+    await api()
+      .post('/api/v1/auth/register')
+      .send({ email, password: 'motdepasse', username })
+      .expect(201);
     const res = await api()
       .post('/api/v1/auth/verify-email')
       .send({ token: mail.last(email, 'verify') })
@@ -82,17 +85,29 @@ describe('MVP Laito (e2e)', () => {
         .expect(201);
       expect(mail.last(email, 'verify')).toBeDefined();
 
-      const blocked = await api().post('/api/v1/auth/login').send({ email, password: 'motdepasse' }).expect(403);
+      const blocked = await api()
+        .post('/api/v1/auth/login')
+        .send({ email, password: 'motdepasse' })
+        .expect(403);
       expect(blocked.body.error).toBe('EMAIL_NOT_VERIFIED');
 
-      await api().post('/api/v1/auth/verify-email').send({ token: mail.last(email, 'verify') }).expect(200);
-      const ok = await api().post('/api/v1/auth/login').send({ email, password: 'motdepasse' }).expect(200);
+      await api()
+        .post('/api/v1/auth/verify-email')
+        .send({ token: mail.last(email, 'verify') })
+        .expect(200);
+      const ok = await api()
+        .post('/api/v1/auth/login')
+        .send({ email, password: 'motdepasse' })
+        .expect(200);
       expect(ok.body.accessToken).toBeTruthy();
       expect(ok.headers['set-cookie']?.[0]).toMatch(/laito_rt=.*HttpOnly/i);
     });
 
     it('fait tourner le refresh token et refuse sa réutilisation', async () => {
-      const login = await api().post('/api/v1/auth/login').send({ email, password: 'motdepasse' }).expect(200);
+      const login = await api()
+        .post('/api/v1/auth/login')
+        .send({ email, password: 'motdepasse' })
+        .expect(200);
       const cookie = login.headers['set-cookie'] as unknown as string[];
       const refreshed = await api().post('/api/v1/auth/refresh').set('Cookie', cookie).expect(200);
       expect(refreshed.body.user.email).toBe(email);
@@ -155,7 +170,11 @@ describe('MVP Laito (e2e)', () => {
 
     it('ajoute et réorganise les chapitres en une requête, ordre conservé', async () => {
       for (const title of ['Un', 'Deux', 'Trois']) {
-        const r = await api().post(`/api/v1/books/${bookId}/chapters`).set(auth(author)).send({ title }).expect(201);
+        const r = await api()
+          .post(`/api/v1/books/${bookId}/chapters`)
+          .set(auth(author))
+          .send({ title })
+          .expect(201);
         chapters.push(r.body.id);
       }
       const reordered = [chapters[2], chapters[0], chapters[1]];
@@ -164,7 +183,10 @@ describe('MVP Laito (e2e)', () => {
         .set(auth(author))
         .send({ chapterIds: reordered })
         .expect(200);
-      const list = await api().get(`/api/v1/books/${bookId}/chapters`).set(auth(author)).expect(200);
+      const list = await api()
+        .get(`/api/v1/books/${bookId}/chapters`)
+        .set(auth(author))
+        .expect(200);
       expect(list.body.map((c: { id: string }) => c.id)).toEqual(reordered);
       chapters = reordered;
     });
@@ -176,9 +198,15 @@ describe('MVP Laito (e2e)', () => {
         .send({ content: 'Il était **une** fois.\n\nLa mer montait.', baseVersion: 0 })
         .expect(200);
       expect(saved.body.version).toBe(1);
-      const content = await api().get(`/api/v1/chapters/${chapters[0]}/content`).set(auth(author)).expect(200);
+      const content = await api()
+        .get(`/api/v1/chapters/${chapters[0]}/content`)
+        .set(auth(author))
+        .expect(200);
       expect(content.body.content).toContain('**une**');
-      const list = await api().get(`/api/v1/books/${bookId}/chapters`).set(auth(author)).expect(200);
+      const list = await api()
+        .get(`/api/v1/books/${bookId}/chapters`)
+        .set(auth(author))
+        .expect(200);
       expect(list.body[0].wordCount).toBe(7);
     });
 
@@ -186,15 +214,31 @@ describe('MVP Laito (e2e)', () => {
       await api().get(`/api/v1/read/books/${bookId}`).expect(404);
       await api().get(`/api/v1/read/books/${bookId}`).set(auth(reader)).expect(404);
       await api().get(`/api/v1/books/${bookId}`).set(auth(reader)).expect(404);
-      await api().put(`/api/v1/chapters/${chapters[0]}/content`).set(auth(reader)).send({ content: 'x' }).expect(404);
+      await api()
+        .put(`/api/v1/chapters/${chapters[0]}/content`)
+        .set(auth(reader))
+        .send({ content: 'x' })
+        .expect(404);
     });
 
     it('rend le livre public : chapitres non brouillons lisibles par tous', async () => {
-      await api().patch(`/api/v1/books/${bookId}`).set(auth(author)).send({ visibility: 'public', status: 'in_progress' }).expect(200);
+      await api()
+        .patch(`/api/v1/books/${bookId}`)
+        .set(auth(author))
+        .send({ visibility: 'public', status: 'in_progress' })
+        .expect(200);
       for (const id of chapters) {
-        await api().patch(`/api/v1/chapters/${id}`).set(auth(author)).send({ visibility: 'public' }).expect(200);
+        await api()
+          .patch(`/api/v1/chapters/${id}`)
+          .set(auth(author))
+          .send({ visibility: 'public' })
+          .expect(200);
       }
-      await api().patch(`/api/v1/chapters/${chapters[0]}`).set(auth(author)).send({ status: 'published' }).expect(200);
+      await api()
+        .patch(`/api/v1/chapters/${chapters[0]}`)
+        .set(auth(author))
+        .send({ status: 'published' })
+        .expect(200);
       const read = await api().get(`/api/v1/read/books/${bookId}`).expect(200);
       expect(read.body.chapters.map((c: { id: string }) => c.id)).toEqual([chapters[0]]);
       const chapter = await api().get(`/api/v1/read/chapters/${chapters[0]}`).expect(200);
@@ -205,8 +249,16 @@ describe('MVP Laito (e2e)', () => {
     });
 
     it('« amis » : réservé aux amis acceptés', async () => {
-      await api().patch(`/api/v1/books/${bookId}`).set(auth(author)).send({ visibility: 'friends' }).expect(200);
-      await api().patch(`/api/v1/chapters/${chapters[0]}`).set(auth(author)).send({ visibility: 'friends' }).expect(200);
+      await api()
+        .patch(`/api/v1/books/${bookId}`)
+        .set(auth(author))
+        .send({ visibility: 'friends' })
+        .expect(200);
+      await api()
+        .patch(`/api/v1/chapters/${chapters[0]}`)
+        .set(auth(author))
+        .send({ visibility: 'friends' })
+        .expect(200);
       await api().get(`/api/v1/read/books/${bookId}`).set(auth(reader)).expect(404);
       await api().post(`/api/v1/friends/${author.username}`).set(auth(reader)).expect(201);
       await api().get(`/api/v1/read/books/${bookId}`).set(auth(reader)).expect(404); // demande en attente
@@ -217,18 +269,30 @@ describe('MVP Laito (e2e)', () => {
     });
 
     it('partage un lien privé unique, avec expiration optionnelle, révocable', async () => {
-      await api().patch(`/api/v1/books/${bookId}`).set(auth(author)).send({ visibility: 'private' }).expect(200);
+      await api()
+        .patch(`/api/v1/books/${bookId}`)
+        .set(auth(author))
+        .send({ visibility: 'private' })
+        .expect(200);
       const link = await api()
         .post('/api/v1/share/links')
         .set(auth(author))
-        .send({ resourceType: 'book', resourceId: bookId, expiresAt: new Date(Date.now() + 86400_000).toISOString() })
+        .send({
+          resourceType: 'book',
+          resourceId: bookId,
+          expiresAt: new Date(Date.now() + 86400_000).toISOString(),
+        })
         .expect(201);
       const token = link.body.token as string;
       expect(link.body.url).toContain(`/s/${token}`);
       // Créer un lien sur un livre privé le passe en « lien privé ».
       const book = await api().get(`/api/v1/books/${bookId}`).set(auth(author)).expect(200);
       expect(book.body.visibility).toBe('link');
-      await api().patch(`/api/v1/chapters/${chapters[0]}`).set(auth(author)).send({ visibility: 'link' }).expect(200);
+      await api()
+        .patch(`/api/v1/chapters/${chapters[0]}`)
+        .set(auth(author))
+        .send({ visibility: 'link' })
+        .expect(200);
 
       const resolved = await api().get(`/api/v1/share/resolve/${token}`).expect(200);
       expect(resolved.body.bookId).toBe(bookId);
@@ -260,13 +324,29 @@ describe('MVP Laito (e2e)', () => {
         .send({ readingPreferences: { theme: 'night', fontSize: 22, fontFamily: 'lora' } })
         .expect(200);
       // Nouvelle session = autre appareil.
-      const other = await api().post('/api/v1/auth/login').send({ email: reader.email, password: 'motdepasse' }).expect(200);
-      expect(other.body.user.settings.readingPreferences).toMatchObject({ theme: 'night', fontSize: 22, fontFamily: 'lora', justify: true });
+      const other = await api()
+        .post('/api/v1/auth/login')
+        .send({ email: reader.email, password: 'motdepasse' })
+        .expect(200);
+      expect(other.body.user.settings.readingPreferences).toMatchObject({
+        theme: 'night',
+        fontSize: 22,
+        fontFamily: 'lora',
+        justify: true,
+      });
     });
 
     it('reprend la lecture au bon paragraphe', async () => {
-      await api().patch(`/api/v1/books/${bookId}`).set(auth(author)).send({ visibility: 'public' }).expect(200);
-      await api().patch(`/api/v1/chapters/${chapters[0]}`).set(auth(author)).send({ visibility: 'public' }).expect(200);
+      await api()
+        .patch(`/api/v1/books/${bookId}`)
+        .set(auth(author))
+        .send({ visibility: 'public' })
+        .expect(200);
+      await api()
+        .patch(`/api/v1/chapters/${chapters[0]}`)
+        .set(auth(author))
+        .send({ visibility: 'public' })
+        .expect(200);
       await api()
         .put('/api/v1/read/progress')
         .set(auth(reader))
@@ -289,9 +369,16 @@ describe('MVP Laito (e2e)', () => {
       const exp = await api().get('/api/v1/me/export').set(auth(author)).expect(200);
       expect(exp.body.writing[0].chapters.length).toBe(3);
       await api().delete('/api/v1/me').set(auth(author)).send({ password: 'mauvais' }).expect(400);
-      await api().delete('/api/v1/me').set(auth(author)).send({ password: 'motdepasse' }).expect(204);
+      await api()
+        .delete('/api/v1/me')
+        .set(auth(author))
+        .send({ password: 'motdepasse' })
+        .expect(204);
       await api().get(`/api/v1/read/books/${bookId}`).expect(404);
-      await api().post('/api/v1/auth/login').send({ email: author.email, password: 'motdepasse' }).expect(401);
+      await api()
+        .post('/api/v1/auth/login')
+        .send({ email: author.email, password: 'motdepasse' })
+        .expect(401);
     });
   });
 });

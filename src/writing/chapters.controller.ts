@@ -13,7 +13,11 @@ export class ChaptersController {
   constructor(private readonly writing: WritingService) {}
 
   @Patch(':id')
-  update(@CurrentUser() user: AuthUser, @Param('id', UuidParam) id: string, @Body() dto: UpdateChapterDto) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateChapterDto,
+  ) {
     return this.writing.updateChapter(user.id, id, dto);
   }
 
@@ -35,7 +39,11 @@ export class ChaptersController {
   }
 
   @Put(':id/content')
-  save(@CurrentUser() user: AuthUser, @Param('id', UuidParam) id: string, @Body() dto: SaveContentDto) {
+  save(
+    @CurrentUser() user: AuthUser,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: SaveContentDto,
+  ) {
     return this.writing.saveContent(user.id, id, dto);
   }
 }

@@ -15,13 +15,21 @@ export class ReadingController {
 
   @OptionalAuth()
   @Get('books/:id')
-  book(@CurrentUser() user: AuthUser | undefined, @Param('id', UuidParam) id: string, @Query() q: ShareQueryDto) {
+  book(
+    @CurrentUser() user: AuthUser | undefined,
+    @Param('id', UuidParam) id: string,
+    @Query() q: ShareQueryDto,
+  ) {
     return this.library.readBook(user?.id ?? null, id, q.share);
   }
 
   @OptionalAuth()
   @Get('chapters/:id')
-  chapter(@CurrentUser() user: AuthUser | undefined, @Param('id', UuidParam) id: string, @Query() q: ShareQueryDto) {
+  chapter(
+    @CurrentUser() user: AuthUser | undefined,
+    @Param('id', UuidParam) id: string,
+    @Query() q: ShareQueryDto,
+  ) {
     return this.library.readChapter(user?.id ?? null, id, q.share);
   }
 

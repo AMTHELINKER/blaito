@@ -49,7 +49,10 @@ interface LevelInput {
   isFriend: boolean;
 }
 
-export function levelAllows(level: Visibility, { hasGrant, hasToken, isFriend }: LevelInput): boolean {
+export function levelAllows(
+  level: Visibility,
+  { hasGrant, hasToken, isFriend }: LevelInput,
+): boolean {
   if (hasGrant) return true;
   switch (level) {
     case 'public':
@@ -74,7 +77,8 @@ export function isOwner(book: PolicyBook, ctx: AccessContext): boolean {
 export function canReadBook(book: PolicyBook, chapterIds: string[], ctx: AccessContext): boolean {
   if (isOwner(book, ctx)) return true;
   const ofBook = (ref: ResourceRef | null) =>
-    matches(ref, 'book', book.id) || (ref?.resourceType === 'chapter' && chapterIds.includes(ref.resourceId));
+    matches(ref, 'book', book.id) ||
+    (ref?.resourceType === 'chapter' && chapterIds.includes(ref.resourceId));
   return levelAllows(book.visibility, {
     hasGrant: ctx.grants.some(ofBook),
     hasToken: ofBook(ctx.shareLink),

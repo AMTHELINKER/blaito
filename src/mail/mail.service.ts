@@ -5,7 +5,10 @@ import { APP_CONFIG, AppConfig } from '../config/configuration';
 import { MAIL_QUEUE, MailJob } from './mail.types';
 
 const escape = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  );
 
 function layout(title: string, body: string, cta: { label: string; url: string }): string {
   return `<!doctype html><html lang="fr"><body style="margin:0;background:#F3E9D7;font-family:Georgia,serif;color:#3E2A1E">

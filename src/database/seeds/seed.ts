@@ -69,14 +69,19 @@ async function main() {
       }),
     );
     await em.save(
-      em.create(UserSettings, { userId: user.id, onboardingCompleted: true, readingPreferences: DEFAULT_READING_PREFERENCES }),
+      em.create(UserSettings, {
+        userId: user.id,
+        onboardingCompleted: true,
+        readingPreferences: DEFAULT_READING_PREFERENCES,
+      }),
     );
     const book = await em.save(
       em.create(Book, {
         authorId: user.id,
         title: 'Les Jardins de Sel',
         slug: slugify('Les Jardins de Sel'),
-        summary: 'Une maison oubliée par la mer, vingt-trois carnets, et une lettre jamais ouverte.',
+        summary:
+          'Une maison oubliée par la mer, vingt-trois carnets, et une lettre jamais ouverte.',
         genre: 'roman',
         status: 'in_progress',
         visibility: 'public',
@@ -98,7 +103,14 @@ async function main() {
           publishedAt: new Date(),
         }),
       );
-      await em.save(em.create(ChapterContent, { chapterId: ch.id, content, contentText: toPlainText(content), version: 1 }));
+      await em.save(
+        em.create(ChapterContent, {
+          chapterId: ch.id,
+          content,
+          contentText: toPlainText(content),
+          version: 1,
+        }),
+      );
     }
     await em.update(Book, { id: book.id }, { wordCount: total });
     console.log('Compte de démo créé : demo@laito.app / laito-demo');
