@@ -4,7 +4,10 @@ export interface AppConfig {
   webOrigin: string;
   apiPublicUrl: string;
   databaseUrl: string;
-  redisUrl: string;
+  /** Facultatif : sans Redis, e-mails envoyés directement et temps réel en mémoire (une seule instance). */
+  redisUrl?: string;
+  /** Dossier du front construit, servi par l'API sur le même domaine (déploiement à service unique). */
+  webDir?: string;
   jwtAccessSecret: string;
   jwtAccessTtl: string;
   refreshTtlDays: number;
@@ -39,10 +42,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     env: nodeEnv,
     port: Number(env.PORT ?? 3000),
-    webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
-    apiPublicUrl: env.API_PUBLIC_URL ?? `http://localhost:${env.PORT ?? 3000}`,
+    // RENDER_EXTERNAL_URL est fourni par Render : utile quand front et API partagent le service.
+    webOrigin: env.WEB_ORIGIN ?? env.RENDER_EXTERNAL_URL ?? 'http://localhost:5173',
+    apiPublicUrl:
+      env.API_PUBLIC_URL ?? env.RENDER_EXTERNAL_URL ?? `http://localhost:${env.PORT ?? 3000}`,
     databaseUrl: required('DATABASE_URL', 'postgres://laito:laito@localhost:5433/laito'),
-    redisUrl: required('REDIS_URL', 'redis://localhost:6380'),
+    redisUrl: env.REDIS_URL || undefined,
+    webDir: env.WEB_DIR || undefined,
     jwtAccessSecret,
     jwtAccessTtl: env.JWT_ACCESS_TTL ?? '15m',
     refreshTtlDays: Number(env.REFRESH_TTL_DAYS ?? 30),

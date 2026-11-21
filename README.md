@@ -29,6 +29,8 @@ Sans `SMTP_HOST`, les e-mails (vérification, mot de passe) s'affichent dans les
 
 Toute la pile en conteneurs : `docker compose --profile app up --build`.
 
+**Mise en ligne gratuite** (Render + Neon + stockage S3 + Brevo, API et PWA sur un seul domaine) : voir [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
+
 ## Commandes
 
 | Commande                                                | Effet                                                                  |

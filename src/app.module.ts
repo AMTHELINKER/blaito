@@ -32,10 +32,10 @@ import { WritingModule } from './writing/writing.module';
         autoLoadEntities: true,
       }),
     }),
-    BullModule.forRootAsync({
-      inject: [APP_CONFIG],
-      useFactory: (config: AppConfig) => ({ connection: { url: config.redisUrl } }),
-    }),
+    // Redis facultatif (voir MailModule et l'adaptateur temps réel).
+    ...(process.env.REDIS_URL
+      ? [BullModule.forRoot({ connection: { url: process.env.REDIS_URL } })]
+      : []),
     JwtModule.registerAsync({
       global: true,
       inject: [APP_CONFIG],

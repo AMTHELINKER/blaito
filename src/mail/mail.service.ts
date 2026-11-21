@@ -1,7 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { APP_CONFIG, AppConfig } from '../config/configuration';
+import { MailSender } from './mail-sender';
 import { MAIL_QUEUE, MailJob } from './mail.types';
 
 const escape = (s: string) =>
@@ -21,12 +22,15 @@ function layout(title: string, body: string, cta: { label: string; url: string }
 </div></body></html>`;
 }
 
-/** Les e-mails sont mis en file (BullMQ) puis envoyés par MailProcessor. */
+/** Les e-mails sont mis en file (BullMQ) si Redis est configuré, sinon envoyés directement. */
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
+
   constructor(
-    @InjectQueue(MAIL_QUEUE) private readonly queue: Queue<MailJob>,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly sender: MailSender,
+    @Optional() @InjectQueue(MAIL_QUEUE) private readonly queue?: Queue<MailJob>,
   ) {}
 
   async sendVerification(to: string, token: string): Promise<void> {
@@ -58,6 +62,13 @@ export class MailService {
   }
 
   protected async enqueue(job: MailJob): Promise<void> {
+    if (!this.queue) {
+      // Sans file : envoi direct. Un échec SMTP ne doit pas faire échouer l'inscription.
+      await this.sender
+        .send(job)
+        .catch((err: Error) => this.logger.error(`E-mail non envoyé : ${err.message}`));
+      return;
+    }
     await this.queue.add('send', job, {
       attempts: 5,
       backoff: { type: 'exponential', delay: 5000 },

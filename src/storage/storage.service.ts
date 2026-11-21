@@ -51,7 +51,9 @@ export class StorageService {
     const path = join(this.localRoot, key);
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, buffer);
-    return `${this.config.apiPublicUrl.replace(/\/$/, '')}/uploads/${key}`;
+    // Adresse relative : le front est servi sur le même domaine que l'API (proxy en dev,
+    // service unique ou nginx en production) ; elle survit à un changement de domaine.
+    return `/uploads/${key}`;
   }
 
   /** Supprime une image précédemment stockée (au mieux : une erreur n'interrompt pas l'action). */
