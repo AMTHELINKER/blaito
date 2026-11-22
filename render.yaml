@@ -34,14 +34,9 @@ services:
         sync: false
       - key: S3_PUBLIC_URL
         sync: false
-      # E-mails (vérification, mot de passe) : SMTP gratuit, par ex. Brevo.
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: '587'
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
+      # E-mails (vérification, mot de passe) : API HTTP de Brevo.
+      # Render gratuit bloque le SMTP sortant (ports 25, 465, 587) : pas de SMTP_* ici.
+      - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false

@@ -11,7 +11,15 @@ export interface AppConfig {
   jwtAccessSecret: string;
   jwtAccessTtl: string;
   refreshTtlDays: number;
-  mail: { host?: string; port: number; user?: string; pass?: string; from: string };
+  mail: {
+    /** Clé d'API Brevo : envoi par HTTPS (prioritaire sur le SMTP, bloqué chez Render gratuit). */
+    brevoApiKey?: string;
+    host?: string;
+    port: number;
+    user?: string;
+    pass?: string;
+    from: string;
+  };
   storage: {
     driver: 'local' | 's3';
     uploadDir: string;
@@ -53,6 +61,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     jwtAccessTtl: env.JWT_ACCESS_TTL ?? '15m',
     refreshTtlDays: Number(env.REFRESH_TTL_DAYS ?? 30),
     mail: {
+      brevoApiKey: env.BREVO_API_KEY || undefined,
       host: env.SMTP_HOST || undefined,
       port: Number(env.SMTP_PORT ?? 1025),
       user: env.SMTP_USER || undefined,

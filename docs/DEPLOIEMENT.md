@@ -9,6 +9,8 @@ Architecture retenue : **un seul service web** qui sert l'API et la PWA sur le m
 | Images (couvertures, avatars) | [Supabase Storage](https://supabase.com) (S3) — ou Cloudflare R2 | 1 Go (Supabase, sans carte) ; 10 Go (R2)                                                                            |
 | E-mails                       | [Brevo](https://www.brevo.com) (SMTP)                            | 300 e-mails/jour                                                                                                    |
 
+Pourquoi l'API HTTP de Brevo et pas le SMTP : depuis septembre 2025, Render bloque le SMTP sortant (ports 25, 465 et 587) sur ses services gratuits. L'API passe par HTTPS (port 443).
+
 Pourquoi un seul domaine : le cookie de session reste « first-party ». Avec le front et l'API sur deux domaines, Safari (donc tous les iPhone) bloquerait ce cookie, et la reconnexion automatique échouerait. Le WebSocket de la messagerie passe aussi sans configuration supplémentaire.
 
 Sans Redis, l'API envoie les e-mails directement et gère le temps réel en mémoire : c'est adapté à une seule instance. Pour plusieurs instances, ajoutez `REDIS_URL`.
@@ -36,8 +38,12 @@ Les migrations sont appliquées automatiquement à chaque déploiement.
 
 ## 3. E-mails — Brevo
 
-1. Créez un compte, validez l'adresse d'expéditeur (**Senders & IP**).
-2. **SMTP & API → SMTP** : notez le serveur (`smtp-relay.brevo.com`), le port `587`, l'identifiant et la clé SMTP.
+1. Créez un compte, validez l'adresse d'expéditeur (**Senders, Domains & Dedicated IPs → Senders**).
+2. **SMTP & API → onglet API keys → Generate a new API key** : c'est `BREVO_API_KEY`.
+3. `MAIL_FROM="Laito <adresse validée chez Brevo>"`.
+4. Vérifiez depuis votre machine : `ENV_FILE=.env.production pnpm mail:check vous@exemple.fr`.
+
+Les identifiants SMTP de Brevo ne servent pas sur Render (port bloqué) ; ils restent utilisables en local.
 
 ## 4. Service web — Render
 
@@ -45,7 +51,7 @@ Les migrations sont appliquées automatiquement à chaque déploiement.
 2. Renseignez les variables demandées :
    - `DATABASE_URL` (Neon)
    - `S3_*` (étape 2)
-   - `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM="Laito <adresse validée chez Brevo>"`
+   - `BREVO_API_KEY`, `MAIL_FROM="Laito <adresse validée chez Brevo>"`
    - `JWT_ACCESS_SECRET` est généré automatiquement.
 3. Lancez le déploiement. Render construit l'image `deploy/render/Dockerfile` : il récupère et construit le front (dépôt `flaito`), puis l'API.
 4. L'application est en ligne sur `https://laito.onrender.com` (ou le nom choisi). `WEB_ORIGIN` et `API_PUBLIC_URL` prennent automatiquement cette adresse (`RENDER_EXTERNAL_URL`) ; renseignez-les seulement avec un domaine personnalisé.
