@@ -137,4 +137,20 @@ describe('canReadChapter', () => {
       false,
     );
   });
+  it('un chapitre masqué par la modération n’est visible que de son auteur', () => {
+    const hidden = { ...chapter('public'), hiddenAt: new Date() };
+    expect(canReadChapter(book('public'), hidden, ids, ctx())).toBe(false);
+    expect(canReadChapter(book('public'), hidden, ids, ctx({ viewerId: AUTHOR }))).toBe(true);
+  });
+});
+
+describe('contenu masqué par la modération', () => {
+  it('un livre masqué n’est lisible que de son auteur, même public ou partagé', () => {
+    const hidden = { ...book('public'), hiddenAt: new Date() };
+    expect(canReadBook(hidden, ids, ctx({ viewerId: null }))).toBe(false);
+    expect(
+      canReadBook(hidden, ids, ctx({ grants: [{ resourceType: 'book', resourceId: 'b1' }] })),
+    ).toBe(false);
+    expect(canReadBook(hidden, ids, ctx({ viewerId: AUTHOR }))).toBe(true);
+  });
 });

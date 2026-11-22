@@ -13,7 +13,7 @@ import {
 import type { Namespace, Socket } from 'socket.io';
 import { Repository } from 'typeorm';
 import type { AccessTokenPayload } from '../common/auth/auth-user';
-import { Events, type FriendshipChangedEvent } from '../common/events';
+import { Events, type FriendshipChangedEvent, type UserSuspendedEvent } from '../common/events';
 import { MessagingEvents, type TypingEvent } from '../shared';
 import { ConversationMember } from './entities/conversation-member.entity';
 
@@ -76,6 +76,11 @@ export class RealtimeGateway implements OnGatewayConnection {
   @OnEvent(Events.FriendshipChanged)
   onFriendshipChanged({ userIds }: FriendshipChangedEvent): void {
     this.emitTo(userIds, MessagingEvents.FriendsChanged, {});
+  }
+
+  @OnEvent(Events.UserSuspended)
+  onUserSuspended({ userId }: UserSuspendedEvent): void {
+    this.disconnectUser(userId);
   }
 
   /** Une session supprimée (déconnexion, compte supprimé) ferme ses sockets. */

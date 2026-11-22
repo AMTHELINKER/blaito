@@ -44,15 +44,16 @@ Toute la pile en conteneurs : `docker compose --profile app up --build`.
 
 Un domaine = un module NestJS = un schéma PostgreSQL :
 
-| Domaine      | Schéma      | Rôle                                                                        |
-| ------------ | ----------- | --------------------------------------------------------------------------- |
-| identité     | `identity`  | comptes, profils, sessions, paramètres, jetons e-mail                       |
-| écriture     | `writing`   | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
-| partage      | `sharing`   | liens de partage, invitations, **service d'autorisation unique**            |
-| social       | `social`    | amitiés (visibilité « amis », messagerie)                                   |
-| messagerie   | `messaging` | conversations privées et groupes, messages, temps réel (Socket.IO + Redis)  |
-| bibliothèque | `library`   | progression de lecture, favoris                                             |
-| catalogue    | —           | composition : recherche publique, profils auteurs                           |
+| Domaine      | Schéma       | Rôle                                                                        |
+| ------------ | ------------ | --------------------------------------------------------------------------- |
+| identité     | `identity`   | comptes, profils, sessions, paramètres, jetons e-mail                       |
+| écriture     | `writing`    | livres, chapitres, contenus (séparés des métadonnées), versions, étiquettes |
+| partage      | `sharing`    | liens de partage, invitations, **service d'autorisation unique**            |
+| social       | `social`     | amitiés (visibilité « amis », messagerie)                                   |
+| messagerie   | `messaging`  | conversations privées et groupes, messages, temps réel (Socket.IO + Redis)  |
+| modération   | `moderation` | signalements, décisions (masquer, suspendre), journal, tableau de bord      |
+| bibliothèque | `library`    | progression de lecture, favoris                                             |
+| catalogue    | —            | composition : recherche publique, profils auteurs                           |
 
 Les domaines ne lisent jamais les tables des autres. Ils passent par les services exportés ou par des événements (`user.deleted`, `user.export`, `writing.book.deleted`). Aucune clé étrangère entre schémas ; clés primaires en UUID v7.
 

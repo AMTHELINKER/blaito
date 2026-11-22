@@ -38,6 +38,10 @@ export class Book extends SoftDeletableEntity {
   @Column({ name: 'published_at', type: 'timestamptz', nullable: true })
   publishedAt: Date | null;
 
+  /** Masqué par la modération : invisible pour tous sauf l'auteur. */
+  @Column({ name: 'hidden_at', type: 'timestamptz', nullable: true })
+  hiddenAt: Date | null;
+
   /** Compteur dénormalisé (somme des chapitres non supprimés). */
   @Column({ name: 'word_count', type: 'integer', default: 0 })
   wordCount: number;

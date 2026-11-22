@@ -17,5 +17,6 @@ import { RealtimeGateway } from './realtime.gateway';
   ],
   controllers: [MessagingController],
   providers: [MessagingService, RealtimeGateway],
+  exports: [MessagingService],
 })
 export class MessagingModule {}

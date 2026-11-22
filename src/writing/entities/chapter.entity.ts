@@ -34,6 +34,10 @@ export class Chapter extends SoftDeletableEntity {
   @Column({ name: 'published_at', type: 'timestamptz', nullable: true })
   publishedAt: Date | null;
 
+  /** Masqué par la modération : invisible pour tous sauf l'auteur. */
+  @Column({ name: 'hidden_at', type: 'timestamptz', nullable: true })
+  hiddenAt: Date | null;
+
   @OneToOne(() => ChapterContent, (c) => c.chapter)
   content?: ChapterContent;
 }

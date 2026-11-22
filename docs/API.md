@@ -122,6 +122,27 @@ Socket.IO, espace de noms `/messaging`, authentifié par le jeton d'accès : `io
 | `typing`               | `{ conversationId, userId }`         | un membre écrit (à émettre aussi : `{ conversationId }`)         |
 | `friends:changed`      | `{}`                                 | demande, acceptation ou retrait d'ami : recharger `/friends`     |
 
+## Signalements
+
+| Méthode | Route      | Corps                                                               | Réponse                                                                                                  |
+| ------- | ---------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| POST    | `/reports` | `CreateReportRequest` (`targetType` : book, chapter, user, message) | `{ message }` — 404 si la cible n'est pas visible ; un seul signalement ouvert par personne et par cible |
+
+## Administration (rôle `moderator` ou `admin`, sinon 403)
+
+| Méthode | Route                                                     | Corps                                         | Réponse                                                     |
+| ------- | --------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| GET     | `/admin/stats`                                            | —                                             | `AdminStatsDto`                                             |
+| GET     | `/admin/reports?status=open\|resolved\|dismissed&cursor=` | —                                             | `Paginated<ReportDto>` (ouverts : les plus anciens d'abord) |
+| POST    | `/admin/reports/:id/resolve`                              | `{ decision: dismiss\|hide\|suspend, note? }` | 204 — clôt tous les signalements ouverts de la cible        |
+| POST    | `/admin/content/:type/:id/hide` · `/unhide`               | `{ reason? }`                                 | 204 — `type` : book, chapter, message                       |
+| GET     | `/admin/users?q=&cursor=`                                 | —                                             | `Paginated<AdminUserDto>`                                   |
+| POST    | `/admin/users/:id/suspend` · `/reinstate`                 | `{ reason? }`                                 | 204 — jamais sur un rang égal ou supérieur                  |
+| PATCH   | `/admin/users/:id/role`                                   | `{ role }`                                    | 204 — **admin uniquement**                                  |
+| GET     | `/admin/actions?cursor=`                                  | —                                             | `Paginated<ModerationActionDto>` (journal)                  |
+
+Un contenu masqué (`hiddenAt` dans `BookDto`/`ChapterDto`) n'est visible que de son auteur. Un compte suspendu ne peut plus se connecter ; ses sessions sont révoquées.
+
 ## Catalogue public
 
 | Méthode | Route                                                     | Réponse                              |

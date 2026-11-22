@@ -1,8 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
+import { decodeCursor, encodeCursor } from '../common/cursor';
+import { Events, type UserSuspendedEvent } from '../common/events';
+import { Session } from './entities/session.entity';
 import {
   DEFAULT_READING_PREFERENCES,
+  type UserRole,
+  type UserStatus,
   type MeDto,
   type ProfileDto,
   type UserSettingsDto,
@@ -24,6 +30,8 @@ export class UsersService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     @InjectRepository(UserSettings) private readonly settings: Repository<UserSettings>,
+    @InjectRepository(Session) private readonly sessions: Repository<Session>,
+    private readonly events: EventEmitter2,
   ) {}
 
   async getMe(userId: string): Promise<MeDto> {
@@ -114,6 +122,70 @@ export class UsersService {
 
   async isActive(userId: string): Promise<boolean> {
     return this.users.exists({ where: { id: userId, status: 'active' } });
+  }
+
+  // ───────────────────────── Administration ─────────────────────────
+
+  async findAccount(userId: string) {
+    return this.users.findOne({ where: { id: userId }, relations: { profile: true } });
+  }
+
+  /** Suspendre révoque toutes les sessions : la personne est déconnectée partout. */
+  async setStatus(userId: string, status: UserStatus): Promise<void> {
+    await this.users.update({ id: userId }, { status });
+    if (status === 'suspended') {
+      await this.sessions.delete({ userId });
+      this.events.emit(Events.UserSuspended, { userId } satisfies UserSuspendedEvent);
+    }
+  }
+
+  async setRole(userId: string, role: UserRole): Promise<void> {
+    await this.users.update({ id: userId }, { role });
+  }
+
+  /** Comptes pour l'administration, les plus récents d'abord (curseur : date, id). */
+  async listAccounts(q?: string, cursor?: string, limit = 30) {
+    const after = decodeCursor<[string, string]>(cursor);
+    const qb = this.users
+      .createQueryBuilder('u')
+      .innerJoinAndSelect('u.profile', 'p')
+      // Avec une jointure et une limite, TypeORM exige les noms de propriétés dans le tri.
+      .orderBy('u.createdAt', 'DESC')
+      .addOrderBy('u.id', 'DESC')
+      .take(limit + 1);
+    if (q?.trim()) {
+      const like = `%${escapeLike(q.trim().replace(/^@/, ''))}%`;
+      qb.andWhere(
+        new Brackets((w) =>
+          w
+            .where('u.email ILIKE :like', { like })
+            .orWhere('p.username ILIKE :like', { like })
+            .orWhere('p.display_name ILIKE :like', { like }),
+        ),
+      );
+    }
+    if (after) {
+      qb.andWhere('(u.created_at, u.id) < (:at, :id)', { at: after[0], id: after[1] });
+    }
+    const rows = await qb.getMany();
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page,
+      nextCursor:
+        rows.length > limit && last ? encodeCursor([last.createdAt.toISOString(), last.id]) : null,
+    };
+  }
+
+  async stats() {
+    const row = await this.users
+      .createQueryBuilder('u')
+      .select('COUNT(*)::int', 'total')
+      .addSelect("COUNT(*) FILTER (WHERE u.created_at > now() - interval '7 days')::int", 'new7d')
+      .addSelect("COUNT(*) FILTER (WHERE u.status = 'suspended')::int", 'suspended')
+      .addSelect('COUNT(*) FILTER (WHERE u.email_verified_at IS NOT NULL)::int', 'verified')
+      .getRawOne<{ total: number; new7d: number; suspended: number; verified: number }>();
+    return row ?? { total: 0, new7d: 0, suspended: 0, verified: 0 };
   }
 
   async exportData(userId: string) {

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, EntityManager, In, Not, Repository } from 'typeorm';
+import { Brackets, DataSource, EntityManager, In, IsNull, Not, Repository } from 'typeorm';
 import {
   countWords,
   slugify,
@@ -375,7 +375,8 @@ export class WritingService {
       .createQueryBuilder('b')
       .where("b.visibility = 'public'")
       .andWhere("b.status <> 'draft'")
-      .andWhere('b.published_at IS NOT NULL');
+      .andWhere('b.published_at IS NOT NULL')
+      .andWhere('b.hidden_at IS NULL');
     if (query.genre) qb.andWhere('b.genre = :genre', { genre: query.genre });
     const q = query.q;
     if (q) {
@@ -408,7 +409,7 @@ export class WritingService {
 
   async publicBooksByAuthor(authorId: string): Promise<BookDto[]> {
     const books = await this.books.find({
-      where: { authorId, visibility: 'public', status: Not('draft') },
+      where: { authorId, visibility: 'public', status: Not('draft'), hiddenAt: IsNull() },
       order: { publishedAt: 'DESC' },
     });
     return this.decorate(books, { onlyVisibleChapters: true });
@@ -419,11 +420,64 @@ export class WritingService {
       .createQueryBuilder('b')
       .select('b.genre', 'genre')
       .addSelect('COUNT(*)::int', 'count')
-      .where("b.visibility = 'public' AND b.status <> 'draft' AND b.genre IS NOT NULL")
+      .where(
+        "b.visibility = 'public' AND b.status <> 'draft' AND b.genre IS NOT NULL AND b.hidden_at IS NULL",
+      )
       .groupBy('b.genre')
       .orderBy('count', 'DESC')
       .getRawMany<{ genre: string; count: number }>();
     return rows;
+  }
+
+  // ───────────────────────── Modération (appelée par le domaine moderation) ─────────────────────────
+
+  /** Masque ou rétablit un livre. Renvoie faux si le livre n'existe pas. */
+  async setBookHidden(bookId: string, hidden: boolean): Promise<boolean> {
+    const res = await this.books.update({ id: bookId }, { hiddenAt: hidden ? new Date() : null });
+    return !!res.affected;
+  }
+
+  async setChapterHidden(chapterId: string, hidden: boolean): Promise<boolean> {
+    const res = await this.chapters.update(
+      { id: chapterId },
+      { hiddenAt: hidden ? new Date() : null },
+    );
+    return !!res.affected;
+  }
+
+  async countBooksByAuthors(authorIds: string[]): Promise<Map<string, number>> {
+    if (!authorIds.length) return new Map();
+    const rows = await this.books
+      .createQueryBuilder('b')
+      .select('b.author_id', 'authorId')
+      .addSelect('COUNT(*)::int', 'count')
+      .where('b.author_id IN (:...authorIds)', { authorIds })
+      .groupBy('b.author_id')
+      .getRawMany<{ authorId: string; count: number }>();
+    return new Map(rows.map((r) => [r.authorId, r.count]));
+  }
+
+  async stats() {
+    const [row] = await this.dataSource.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM writing.books WHERE deleted_at IS NULL) AS books,
+         (SELECT COUNT(*)::int FROM writing.books WHERE deleted_at IS NULL AND visibility = 'public' AND status <> 'draft') AS public_books,
+         (SELECT COUNT(*)::int FROM writing.books WHERE deleted_at IS NULL AND created_at > now() - interval '7 days') AS new_books,
+         (SELECT COUNT(*)::int FROM writing.books WHERE deleted_at IS NULL AND hidden_at IS NOT NULL) AS hidden_books,
+         (SELECT COUNT(*)::int FROM writing.chapters WHERE deleted_at IS NULL) AS chapters,
+         (SELECT COUNT(*)::int FROM writing.chapters WHERE deleted_at IS NULL AND status = 'published') AS published_chapters,
+         (SELECT COALESCE(SUM(word_count), 0)::int FROM writing.books WHERE deleted_at IS NULL) AS words`,
+    );
+    return {
+      books: {
+        total: row.books,
+        public: row.public_books,
+        new7d: row.new_books,
+        hidden: row.hidden_books,
+      },
+      chapters: { total: row.chapters, published: row.published_chapters },
+      words: row.words,
+    };
   }
 
   // ───────────────────────── Événements ─────────────────────────

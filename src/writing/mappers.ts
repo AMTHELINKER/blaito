@@ -22,6 +22,7 @@ export function toBookDto(
     updatedAt: b.updatedAt.toISOString(),
     chapterCount: extra.chapterCount,
     wordCount: b.wordCount,
+    hiddenAt: b.hiddenAt?.toISOString() ?? null,
     ...(extra.author && { author: extra.author }),
   };
 }
@@ -37,5 +38,6 @@ export function toChapterDto(c: Chapter): ChapterDto {
     wordCount: c.wordCount,
     publishedAt: c.publishedAt?.toISOString() ?? null,
     updatedAt: c.updatedAt.toISOString(),
+    hiddenAt: c.hiddenAt?.toISOString() ?? null,
   };
 }

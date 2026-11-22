@@ -320,6 +320,46 @@ export class MessagingService {
     return { count: row?.count ?? 0 };
   }
 
+  // ───────────────────────── Modération (appelée par le domaine moderation) ─────────────────────────
+
+  async findMessage(messageId: string): Promise<Message | null> {
+    return this.messages.findOne({ where: { id: messageId }, withDeleted: true });
+  }
+
+  async isMember(userId: string, conversationId: string): Promise<boolean> {
+    return this.members.existsBy({ userId, conversationId });
+  }
+
+  /** Masque un message signalé : il apparaît comme supprimé pour tous les membres. */
+  async moderatorDelete(messageId: string): Promise<boolean> {
+    const message = await this.messages.findOneBy({ id: messageId });
+    if (!message) return false;
+    await this.messages.softDelete({ id: messageId });
+    this.realtime.emitTo(
+      await this.memberIds(message.conversationId),
+      MessagingEvents.MessageDeleted,
+      {
+        conversationId: message.conversationId,
+        messageId,
+      } satisfies MessageDeletedEvent,
+    );
+    return true;
+  }
+
+  async restoreMessage(messageId: string): Promise<boolean> {
+    const res = await this.messages.restore({ id: messageId });
+    return !!res.affected;
+  }
+
+  async stats() {
+    const row = await this.messages
+      .createQueryBuilder('m')
+      .select('COUNT(*)::int', 'total')
+      .addSelect("COUNT(*) FILTER (WHERE m.created_at > now() - interval '7 days')::int", 'last7d')
+      .getRawOne<{ total: number; last7d: number }>();
+    return row ?? { total: 0, last7d: 0 };
+  }
+
   // ───────────────────────── Événements ─────────────────────────
 
   @OnEvent(Events.UserDeleted, { async: true, promisify: true })

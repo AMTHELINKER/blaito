@@ -17,6 +17,7 @@ import { IdentityModule } from './identity/identity.module';
 import { LibraryModule } from './library/library.module';
 import { MailModule } from './mail/mail.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { ModerationModule } from './moderation/moderation.module';
 import { SharingModule } from './sharing/sharing.module';
 import { SocialModule } from './social/social.module';
 import { StorageModule } from './storage/storage.module';
@@ -56,6 +57,7 @@ import { WritingModule } from './writing/writing.module';
     LibraryModule,
     CatalogModule,
     MessagingModule,
+    ModerationModule,
   ],
   controllers: [HealthController],
   providers: [

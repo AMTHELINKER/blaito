@@ -11,7 +11,13 @@ export const Events = {
   BookDeleted: 'writing.book.deleted',
   /** payload: FriendshipChangedEvent — la messagerie prévient les deux personnes en temps réel. */
   FriendshipChanged: 'social.friendship.changed',
+  /** payload: UserSuspendedEvent — la messagerie ferme ses connexions temps réel. */
+  UserSuspended: 'identity.user.suspended',
 } as const;
+
+export interface UserSuspendedEvent {
+  userId: string;
+}
 
 export interface FriendshipChangedEvent {
   userIds: string[];

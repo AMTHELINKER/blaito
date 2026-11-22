@@ -35,7 +35,10 @@ export class CatalogService {
       const start = decodeCursor<[number]>(p.cursor)?.[0] ?? 0;
       const books = (await this.writing.findBooksByIds(ids)).filter(
         (b) =>
-          b.visibility === 'public' && b.status !== 'draft' && (!p.genre || b.genre === p.genre),
+          b.visibility === 'public' &&
+          b.status !== 'draft' &&
+          !b.hiddenAt &&
+          (!p.genre || b.genre === p.genre),
       );
       const page = books.slice(start, start + limit);
       return {
