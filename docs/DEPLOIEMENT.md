@@ -62,6 +62,19 @@ Les migrations sont appliquées automatiquement à chaque déploiement.
 - Ajoutez une couverture : l'image doit s'afficher après un redémarrage du service (elle est sur le stockage S3).
 - Lighthouse (onglet PWA) : l'application doit être installable.
 
+## 6. Compte administrateur
+
+Aucune route de l'API ne permet de s'attribuer un rôle. On promeut un compte existant depuis sa machine, directement en base :
+
+1. Inscrivez-vous sur l'application en ligne et validez l'e-mail reçu.
+2. Depuis `api/`, avec les valeurs de production dans `.env.production` :
+   ```bash
+   ENV_FILE=.env.production pnpm user:role vous@exemple.fr admin
+   ```
+3. Déconnectez-vous puis reconnectez-vous : le jeton porte désormais le rôle `admin`.
+
+Rôles disponibles : `user`, `moderator`, `admin`. La même commande sert à rétrograder (`… user`).
+
 ## Limites à connaître
 
 - **Mise en veille** : après 15 min sans visite, le premier chargement prend environ une minute. Un service de surveillance gratuit qui appelle `/api/v1/health` toutes les 10 min évite la veille, mais consomme les 750 h mensuelles (suffisantes pour un seul service).
