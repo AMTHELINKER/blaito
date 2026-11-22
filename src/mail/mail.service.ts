@@ -61,12 +61,28 @@ export class MailService {
     });
   }
 
+  /** Envoi direct (mode sans Redis), avec quelques nouvelles tentatives espacées. */
+  private async sendWithRetry(job: MailJob, attempts = 3): Promise<void> {
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        await this.sender.send(job);
+        return;
+      } catch (err) {
+        const last = i === attempts;
+        this.logger[last ? 'error' : 'warn'](
+          `E-mail « ${job.subject} » non envoyé (essai ${i}/${attempts}) : ${(err as Error).message}`,
+        );
+        if (last) return;
+        await new Promise((r) => setTimeout(r, 2000 * i));
+      }
+    }
+  }
+
   protected async enqueue(job: MailJob): Promise<void> {
     if (!this.queue) {
-      // Sans file : envoi direct. Un échec SMTP ne doit pas faire échouer l'inscription.
-      await this.sender
-        .send(job)
-        .catch((err: Error) => this.logger.error(`E-mail non envoyé : ${err.message}`));
+      // Sans file : envoi en arrière-plan, pour ne pas faire attendre la réponse
+      // (inscription, renvoi, mot de passe oublié). Un échec ne fait pas échouer la requête.
+      void this.sendWithRetry(job);
       return;
     }
     await this.queue.add('send', job, {

@@ -17,6 +17,9 @@ export class MailSender {
         port,
         secure: port === 465,
         auth: user ? { user, pass } : undefined,
+        // Connexions réutilisées : on évite une poignée de main TLS + authentification par e-mail.
+        pool: true,
+        maxConnections: 2,
       });
     }
   }
