@@ -77,7 +77,7 @@ Rôles disponibles : `user`, `moderator`, `admin`. La même commande sert à ré
 
 ## Limites à connaître
 
-- **Mise en veille** : après 15 min sans visite, le premier chargement prend environ une minute. Un service de surveillance gratuit qui appelle `/api/v1/health` toutes les 10 min évite la veille, mais consomme les 750 h mensuelles (suffisantes pour un seul service).
+- **Mise en veille** : après 15 min sans visite, le premier chargement prend environ une minute. La tâche GitHub Actions `.github/workflows/keepalive.yml` appelle `/api/v1/health` toutes les 5 min pour l'éviter (750 h mensuelles gratuites : suffisantes pour un seul service allumé en permanence). Pour une autre adresse, définissez la variable de dépôt `KEEPALIVE_URL`. GitHub peut retarder ces tâches ; pour une ponctualité stricte, un service comme UptimeRobot fait la même chose.
 - **Bande passante** : 5 Go/mois chez Render. Les images sont servies par le stockage S3, pas par Render.
 - **Sauvegardes** : Neon conserve un historique de restauration de quelques heures sur l'offre gratuite. Pour une vraie sauvegarde, planifiez un `pg_dump` (par ex. une action GitHub hebdomadaire).
 - **Montée en charge** : pour plusieurs instances, ajoutez un Redis (`REDIS_URL`) — files d'e-mails et temps réel partagés.

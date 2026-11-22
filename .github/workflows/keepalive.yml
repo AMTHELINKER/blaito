@@ -1,0 +1,44 @@
+# Garde le service Render gratuit éveillé (il s'endort après 15 min sans visite,
+# et le premier visiteur attend alors ~50 s).
+#
+# GitHub ne garantit pas l'horaire des tâches planifiées (retards fréquents de
+# 5 à 15 min) : on vise toutes les 5 min pour rester sous les 15 min.
+# Coût : nul (dépôt public) ; un service allumé en permanence reste dans les
+# 750 h gratuites mensuelles de Render.
+#
+# Adresse : variable de dépôt KEEPALIVE_URL (Settings → Secrets and variables →
+# Actions → Variables), sinon l'adresse Render par défaut.
+# Note : GitHub désactive les tâches planifiées d'un dépôt public inactif
+# depuis 60 jours ; un simple commit les réactive.
+name: Maintien en éveil
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Appeler /api/v1/health
+        env:
+          URL: ${{ vars.KEEPALIVE_URL || 'https://laito.onrender.com/api/v1/health' }}
+        run: |
+          # Jusqu'à 3 essais : un réveil à froid peut prendre près d'une minute.
+          for i in 1 2 3; do
+            if curl -fsS --max-time 90 -o /dev/null -w "HTTP %{http_code} en %{time_total}s\n" "$URL"; then
+              exit 0
+            fi
+            echo "Essai $i échoué, nouvelle tentative…"
+            sleep 10
+          done
+          echo "::warning::Le service ne répond pas : $URL"
+          exit 1
