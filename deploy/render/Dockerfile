@@ -9,7 +9,11 @@ ARG WEB_REPO=https://github.com/AMTHELINKER/flaito.git
 ARG WEB_REF=main
 RUN apk add --no-cache git && corepack enable
 WORKDIR /web
-RUN git clone --depth 1 --branch "$WEB_REF" "$WEB_REPO" .
+# Sans cette ligne, Docker réutiliserait le clone mis en cache et servirait un front périmé :
+# le contenu téléchargé (dernier commit de la branche) change à chaque push sur flaito,
+# ce qui invalide le cache des étapes suivantes.
+ADD https://api.github.com/repos/AMTHELINKER/flaito/commits/${WEB_REF} /tmp/web-commit.json
+RUN git clone --depth 1 --branch "$WEB_REF" "$WEB_REPO" . && git log -1 --format='Front : %h %s'
 RUN pnpm install --frozen-lockfile && pnpm build
 
 # ── API ──
