@@ -54,7 +54,7 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.4",
     "typeorm": "^0.3.20",
-    "uuid": "^11.0.3"
+    "uuid": "^14.0.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
