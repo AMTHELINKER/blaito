@@ -15,6 +15,6 @@ const withQueue = !!process.env.REDIS_URL;
 @Module({
   imports: withQueue ? [BullModule.registerQueue({ name: MAIL_QUEUE })] : [],
   providers: [MailService, MailSender, ...(withQueue ? [MailProcessor] : [])],
-  exports: [MailService],
+  exports: [MailService, MailSender],
 })
 export class MailModule {}
