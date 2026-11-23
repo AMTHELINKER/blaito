@@ -20,6 +20,7 @@ export class ModerationAction extends UuidEntity {
       'reinstate_user',
       'dismiss_report',
       'change_role',
+      'delete_user',
     ],
     enumName: 'moderation_action_type',
   })

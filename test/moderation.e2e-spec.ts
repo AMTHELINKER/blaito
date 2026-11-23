@@ -26,9 +26,12 @@ describe('Modération (e2e)', () => {
     u.token = res.body.accessToken;
   }
 
+  let signUpExtra: (name: string) => Promise<TestUser>;
+
   beforeAll(async () => {
     const ctx = await createTestApp();
     app = ctx.app;
+    signUpExtra = ctx.signUp;
     [author, reader, mod, admin] = await Promise.all(
       ['auteur', 'lecteur', 'modo', 'admin'].map((n) => ctx.signUp(n)),
     );
@@ -243,5 +246,38 @@ describe('Modération (e2e)', () => {
       .get(`/api/v1/conversations/${conv.body.id}/messages`)
       .set(bearer(admin));
     expect(messages.body.items[0]).toMatchObject({ id: msg.body.id, body: '' });
+  });
+
+  it('seul un administrateur supprime un compte, définitivement et avec ses données', async () => {
+    const victim = await signUpExtra('asupprimer');
+    const book = await api()
+      .post('/api/v1/books')
+      .set(bearer(victim))
+      .send({ title: 'À effacer' })
+      .expect(201);
+
+    await api().delete(`/api/v1/admin/users/${victim.id}`).set(bearer(mod)).send({}).expect(403);
+    await api().delete(`/api/v1/admin/users/${admin.id}`).set(bearer(admin)).send({}).expect(400);
+    await api()
+      .delete(`/api/v1/admin/users/${victim.id}`)
+      .set(bearer(admin))
+      .send({ reason: 'Compte de test' })
+      .expect(204);
+
+    await api()
+      .post('/api/v1/auth/login')
+      .send({ email: victim.email, password: 'motdepasse' })
+      .expect(401);
+    await api().get(`/api/v1/books/${book.body.id}`).set(bearer(admin)).expect(404);
+    const users = await api().get(`/api/v1/admin/users?q=${victim.username}`).set(bearer(admin));
+    expect(users.body.items).toHaveLength(0);
+    const actions = await api().get('/api/v1/admin/actions').set(bearer(admin));
+    expect(actions.body.items[0]).toMatchObject({ action: 'delete_user', targetId: victim.id });
+    expect(actions.body.items[0].reason).toContain(victim.email);
+    // L'adresse est de nouveau libre.
+    await api()
+      .post('/api/v1/auth/register')
+      .send({ email: victim.email, password: 'motdepasse', username: victim.username })
+      .expect(201);
   });
 });

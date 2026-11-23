@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from '../common/auth/auth-user';
 import { Roles } from '../common/auth/roles.guard';
@@ -84,6 +84,18 @@ export class AdminController {
   @HttpCode(204)
   role(@CurrentUser() user: AuthUser, @Param('id', UuidParam) id: string, @Body() dto: RoleDto) {
     return this.moderation.changeRole(user, id, dto.role);
+  }
+
+  /** Suppression définitive d'un compte et de ses données (admin uniquement). */
+  @Roles('admin')
+  @Delete('users/:id')
+  @HttpCode(204)
+  deleteUser(
+    @CurrentUser() user: AuthUser,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: ReasonDto,
+  ) {
+    return this.moderation.deleteUser(user, id, dto.reason);
   }
 
   @Get('actions')

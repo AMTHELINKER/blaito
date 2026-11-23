@@ -3,7 +3,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { decodeCursor, encodeCursor } from '../common/cursor';
-import { Events, type UserSuspendedEvent } from '../common/events';
+import { Events, type UserDeletedEvent, type UserSuspendedEvent } from '../common/events';
+import { StorageService } from '../storage/storage.service';
 import { Session } from './entities/session.entity';
 import {
   DEFAULT_READING_PREFERENCES,
@@ -32,7 +33,21 @@ export class UsersService {
     @InjectRepository(UserSettings) private readonly settings: Repository<UserSettings>,
     @InjectRepository(Session) private readonly sessions: Repository<Session>,
     private readonly events: EventEmitter2,
+    private readonly storage: StorageService,
   ) {}
+
+  /**
+   * Suppression définitive d'un compte et de toutes ses données : chaque domaine efface
+   * ce qui lui appartient (livres, partages, amis, lectures, messages…), puis le compte.
+   * Utilisée par la suppression volontaire et par la suppression administrative.
+   */
+  async purge(userId: string): Promise<void> {
+    const user = await this.users.findOne({ where: { id: userId }, relations: { profile: true } });
+    if (!user) throw new NotFoundException();
+    await this.events.emitAsync(Events.UserDeleted, { userId } satisfies UserDeletedEvent);
+    await this.storage.remove(user.profile?.avatarUrl);
+    await this.users.delete({ id: userId });
+  }
 
   async getMe(userId: string): Promise<MeDto> {
     const user = await this.users.findOne({

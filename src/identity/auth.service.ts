@@ -6,7 +6,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
@@ -15,9 +14,7 @@ import { DataSource, IsNull, MoreThan, Repository } from 'typeorm';
 import { DEFAULT_READING_PREFERENCES, type AuthResponse } from '../shared';
 import { APP_CONFIG, AppConfig } from '../config/configuration';
 import { randomToken, sha256 } from '../common/crypto';
-import { Events, UserDeletedEvent } from '../common/events';
 import { MailService } from '../mail/mail.service';
-import { StorageService } from '../storage/storage.service';
 import { Profile } from './entities/profile.entity';
 import { Session } from './entities/session.entity';
 import { UserSettings } from './entities/user-settings.entity';
@@ -48,8 +45,6 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
-    private readonly storage: StorageService,
-    private readonly events: EventEmitter2,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -195,10 +190,7 @@ export class AuthService {
     if (!(await verify(user.passwordHash, password))) {
       throw new BadRequestException('Mot de passe incorrect');
     }
-    // Chaque domaine efface les données de l'utilisateur (livres, partages, amis, lectures…).
-    await this.events.emitAsync(Events.UserDeleted, { userId } satisfies UserDeletedEvent);
-    await this.storage.remove(user.profile?.avatarUrl);
-    await this.users.delete({ id: userId });
+    await this.usersService.purge(userId);
   }
 
   // ───────────────────────── interne ─────────────────────────

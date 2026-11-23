@@ -239,6 +239,20 @@ export class ModerationService {
     await this.log(admin.id, 'change_role', 'user', userId, `${target.role} → ${role}`);
   }
 
+  /**
+   * Suppression définitive d'un compte (admin uniquement, contrôlé aussi par le contrôleur).
+   * Le journal garde le nom et l'e-mail : le compte n'existera plus pour les afficher.
+   */
+  async deleteUser(admin: AuthUser, userId: string, reason?: string) {
+    if (admin.role !== 'admin') throw new ForbiddenException();
+    await this.assertCanActOn(admin, userId);
+    const target = await this.users.findAccount(userId);
+    if (!target) throw new NotFoundException();
+    const who = `${target.profile?.displayName ?? '?'} (@${target.profile?.username ?? '?'}, ${target.email})`;
+    await this.users.purge(userId);
+    await this.log(admin.id, 'delete_user', 'user', userId, reason ? `${who} — ${reason}` : who);
+  }
+
   // ───────────────────────── Tableau de bord ─────────────────────────
 
   async stats(): Promise<AdminStatsDto> {
